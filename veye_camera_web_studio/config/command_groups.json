@@ -1,0 +1,95 @@
+{
+  "groups": [
+    {
+      "id": "device_info",
+      "name": { "en": "Device Information", "zh": "设备信息" },
+      "description": { "en": "Read camera manufacturer, model, sensor, serial number and version.", "zh": "读取相机制造商、型号、传感器、序列号和版本信息。" },
+      "icon": "info",
+      "order": 1
+    },
+    {
+      "id": "capabilities",
+      "name": { "en": "Capability Set", "zh": "能力集" },
+      "description": { "en": "Camera capabilities including format, read mode, work mode, lane, video mode capabilities and resolution/framerate limits.", "zh": "相机能力集，包括格式、读取模式、工作模式、Lane、视频模式能力及分辨率/帧率范围。" },
+      "icon": "list",
+      "order": 2
+    },
+    {
+      "id": "video_modes",
+      "name": { "en": "Resolution & Framerate", "zh": "分辨率和帧率" },
+      "description": { "en": "Resolution and framerate configuration. Shows preset modes or ROI configuration based on camera capability (0x005C).", "zh": "分辨率和帧率配置。根据相机能力（0x005C）自动显示预设分辨率模式或 ROI 配置。" },
+      "icon": "video",
+      "order": 3
+    },
+    {
+      "id": "current_status",
+      "name": { "en": "Current Status", "zh": "当前状态" },
+      "description": { "en": "Read current camera status including resolution, frame rate, exposure, gain, temperature, etc.", "zh": "读取相机当前状态，包括分辨率、帧率、曝光、增益、温度等。" },
+      "icon": "dashboard",
+      "order": 4
+    },
+    {
+      "id": "exposure_gain",
+      "name": { "en": "Exposure & Gain", "zh": "曝光与增益" },
+      "description": { "en": "Configure exposure mode, AE target/strategy, manual exposure time, gain and related parameters.", "zh": "配置曝光模式、AE 目标/策略、手动曝光时间、增益及相关参数。" },
+      "icon": "sun",
+      "order": 5
+    },
+    {
+      "id": "white_balance",
+      "name": { "en": "White Balance", "zh": "白平衡" },
+      "description": { "en": "Configure white balance mode, color temperature range, manual R/B gain.", "zh": "配置白平衡模式、色温范围、手动 R/B 增益。" },
+      "icon": "palette",
+      "order": 6
+    },
+    {
+      "id": "isp_processing",
+      "name": { "en": "ISP Image Processing", "zh": "ISP 图像处理" },
+      "description": { "en": "Configure ISP parameters: gamma, WDR, sharpening, denoise, saturation, contrast, hue, LDC, LSC, dehaze, DRC, etc.", "zh": "配置 ISP 参数：Gamma、WDR、锐化、降噪、饱和度、对比度、色调、LDC、LSC、去雾、DRC 等。" },
+      "icon": "image",
+      "order": 7
+    },
+    {
+      "id": "trigger_sync",
+      "name": { "en": "Trigger & Synchronization", "zh": "触发与同步" },
+      "description": { "en": "Configure trigger source, trigger number, interval, delay, edge, software trigger and synchronization mode.", "zh": "配置触发源、触发帧数、间隔、延迟、边沿、软件触发和同步模式。" },
+      "icon": "zap",
+      "order": 8
+    },
+    {
+      "id": "day_night",
+      "name": { "en": "Day/Night & IRCUT", "zh": "日夜模式与 IRCUT" },
+      "description": { "en": "Configure day/night mode, IRCUT direction, pin polarity and timer.", "zh": "配置日夜模式、IRCUT 方向、引脚极性和定时器。" },
+      "icon": "moon",
+      "order": 9
+    },
+    {
+      "id": "gpio_control",
+      "name": { "en": "GPIO Control", "zh": "GPIO 控制" },
+      "description": { "en": "Configure GPIO output mode and signal reversal.", "zh": "配置 GPIO 输出模式和信号反转。" },
+      "icon": "cpu",
+      "order": 10
+    },
+    {
+      "id": "video_format",
+      "name": { "en": "Video & Format", "zh": "视频与格式" },
+      "description": { "en": "Configure pixel format, image direction, video mode, test image, MIPI clock mode, metadata, etc.", "zh": "配置像素格式、图像方向、视频模式、测试图像、MIPI 时钟模式、元数据等。" },
+      "icon": "settings",
+      "order": 11
+    },
+    {
+      "id": "system_control",
+      "name": { "en": "System Control", "zh": "系统控制" },
+      "description": { "en": "System-level operations: factory reset, save to flash, reboot, I2C address change, image acquisition control.", "zh": "系统级操作：恢复出厂设置、保存到 Flash、重启、修改 I2C 地址、采集控制。" },
+      "icon": "power",
+      "order": 12
+    },
+    {
+      "id": "advanced",
+      "name": { "en": "Advanced Debug", "zh": "高级调试" },
+      "description": { "en": "Advanced debug operations: direct sensor register read, redriver register.", "zh": "高级调试操作：直接读取传感器寄存器、ReDriver 寄存器。" },
+      "icon": "tool",
+      "order": 13
+    }
+  ]
+}

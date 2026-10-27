@@ -1,0 +1,4 @@
+[
+{"media_node":"/dev/media0","video_node":"/dev/video0","video_subnode":"/dev/v4l-subdev1","media_entity_name":"gxcam 10-003b","i2c_bus":"10"},
+{"media_node":"/dev/media0","video_node":"/dev/video1","video_subnode":"/dev/v4l-subdev0","media_entity_name":"gxcam 9-003b","i2c_bus":"9"}
+]

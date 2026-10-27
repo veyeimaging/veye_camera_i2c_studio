@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEYE Camera Web Studio</title>
+    <link rel="stylesheet" href="/static/style.css?v=20261026">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <img src="/static/logo.png" alt="VEYE" class="header-logo">
+            <h1 class="logo">VEYE Camera Web Studio</h1>
+            <span class="version">v0.1.0</span>
+        </div>
+        <div class="header-right">
+            <button class="theme-btn" id="btnThemeToggle" title="Toggle theme">🌙</button>
+            <div class="lang-switch">
+                <button class="lang-btn active" data-lang="en">EN</button>
+                <button class="lang-btn" data-lang="zh">中文</button>
+            </div>
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot"></span>
+                <span class="status-text" data-i18n="common.loading">Loading...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Left Panel: Device Info + Logs -->
+        <aside class="left-panel">
+            <!-- Device Info Section -->
+            <section class="panel-section device-section">
+                <h2 class="section-title" data-i18n="device.title">
+                    <span class="icon">ℹ️</span> Device Information
+                </h2>
+                <div id="systemInfo" class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label" data-i18n="device.os">OS</span>
+                        <span class="info-value" id="infoOS">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label" data-i18n="device.kernel">Kernel</span>
+                        <span class="info-value" id="infoKernel">—</span>
+                    </div>
+                </div>
+                <div id="cameraInfo" class="camera-info">
+                    <!-- Platform Selector -->
+                    <div class="platform-selector">
+                        <label data-i18n="device.platform_select">Select Platform</label>
+                        <select id="platformSelect" class="platform-select">
+                            <option value="jetson">Nvidia Jetson</option>
+                            <option value="rockchip">Rockchip</option>
+                            <option value="rpi5">Raspberry Pi 5</option>
+                            <option value="rpi">Old Raspberry Pi</option>
+                        </select>
+                    </div>
+                    <!-- Camera Selector -->
+                    <div class="camera-selector" id="cameraSelectorWrap" style="display:none;">
+                        <label data-i18n="device.camera_select">Select Camera</label>
+                        <select id="cameraSelect" class="camera-select"></select>
+                    </div>
+                    <!-- Camera Detail -->
+                    <div id="cameraDetail" class="camera-detail" style="display:none;">
+                        <div class="info-item">
+                            <span class="info-label" data-i18n="device.model">Model</span>
+                            <span class="info-value" id="camModel">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label" data-i18n="device.version_c">C Version</span>
+                            <span class="info-value" id="camVerC">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label" data-i18n="device.version_l">L Version</span>
+                            <span class="info-value" id="camVerL">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label" data-i18n="device.serial">Serial</span>
+                            <span class="info-value" id="camSerial">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label" data-i18n="device.i2c_bus">I2C Bus</span>
+                            <span class="info-value" id="camI2cBus">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label" data-i18n="device.i2c_addr">I2C Address</span>
+                            <span class="info-value" id="camI2cAddr">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label" data-i18n="device.video_node">Video Node</span>
+                            <span class="info-value" id="camVideoNode">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label" data-i18n="device.media_node">Media Node</span>
+                            <span class="info-value" id="camMediaNode">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label" data-i18n="device.entity_name">Entity Name</span>
+                            <span class="info-value" id="camEntityName">—</span>
+                        </div>
+                    </div>
+                    <!-- Fallback: simple camera list -->
+                    <div id="cameraList" class="camera-list" style="display:none;">
+                        <span class="placeholder" data-i18n="device.scanning">Scanning...</span>
+                    </div>
+                </div>
+                <div class="device-actions">
+                    <button class="btn btn-sm btn-outline" id="btnRescan">
+                         <span data-i18n="device.rescan">Rescan</span>
+                    </button>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Center Panel: Search + Groups + Split (List | Operation) -->
+        <main class="center-panel">
+            <!-- Search Bar -->
+            <section class="panel-section search-section">
+                <div class="search-box">
+                    <input type="text" id="searchInput" class="search-input"
+                           data-i18n-placeholder="command.search_placeholder"
+                           placeholder="Search commands...">
+                    <span class="search-icon">🔍</span>
+                </div>
+            </section>
+
+            <!-- Command Groups Tab Bar -->
+            <nav class="groups-tab-bar" id="groupsTabBar">
+                <div id="groupsList" class="groups-list-horizontal">
+                    <!-- Populated by JS -->
+                </div>
+            </nav>
+
+            <!-- Welcome Screen -->
+            <div id="welcomeScreen" class="welcome-screen">
+                <img src="/static/logo-welcome.png" alt="VEYE" class="welcome-logo">
+                <h2>VEYE Camera Web Studio</h2>
+                <p data-i18n="device.title">Select a command group from the left panel to get started, or search for a specific command.</p>
+            </div>
+
+            <!-- Split View: Command List (left) + Operation Panel (right) -->
+            <div id="splitView" class="split-view" style="display:none;">
+                <!-- Left: Command List -->
+                <div class="split-left">
+                    <div class="view-header">
+                        <h2 id="groupTitle"></h2>
+                        <p id="groupDescription" class="group-desc"></p>
+                    </div>
+                    <div id="commandCards" class="command-cards">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <!-- Right: Operation Panel -->
+                <div class="split-right">
+                    <!-- Placeholder when no command selected -->
+                    <div id="opPlaceholder" class="op-placeholder">
+                        <span>← Select a command to operate</span>
+                    </div>
+                    <!-- Operation Panel (shown when command selected) -->
+                    <div id="opPanel" class="op-panel" style="display:none;">
+                        <div class="op-header">
+                            <h3 id="opTitle"></h3>
+                            <div class="op-badges">
+                                <span class="badge" id="opMode"></span>
+                                <span class="badge" id="opRisk"></span>
+                            </div>
+                        </div>
+                        <div class="op-body">
+                            <!-- Register Info -->
+                            <div class="op-section" id="opRegSection">
+                                <div class="op-section-title">Register</div>
+                                <div class="op-register">
+                                    <span class="reg-addr" id="opRegAddr"></span>
+                                    <span class="reg-type" id="opRegType"></span>
+                                </div>
+                            </div>
+                            <!-- Description -->
+                            <div class="op-section">
+                                <div class="op-section-title">Description</div>
+                                <p id="opDescription" class="op-desc"></p>
+                            </div>
+                            <!-- Parameters -->
+                            <div class="op-section" id="opParamsSection">
+                                <div class="op-section-title">Parameters</div>
+                                <form id="paramForm" class="op-params">
+                                    <!-- Populated by JS -->
+                                </form>
+                                <p id="noParamsMsg" class="op-no-params" style="display:none;">No parameters required</p>
+                            </div>
+                            <!-- Action Buttons -->
+                            <div class="op-actions" id="opActions">
+                                <button class="btn btn-primary" id="btnRead" style="display:none;">▶ Read</button>
+                                <button class="btn btn-primary" id="btnWrite" style="display:none;">▶ Write</button>
+                            </div>
+                            <!-- Result -->
+                            <div class="op-result" id="opResult" style="display:none;">
+                                <div class="op-result-placeholder">Execute a command to see results here</div>
+                            </div>
+                            <!-- Notes -->
+                            <div class="op-section" id="opNotesSection" style="display:none;">
+                                <div class="op-section-title">Notes</div>
+                                <p id="opNotes" class="op-notes"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Results View -->
+            <div id="searchResultsView" class="search-results-view" style="display:none;">
+                <div class="view-header">
+                    <h2 id="searchTitle">Search Results</h2>
+                    <button class="btn btn-sm btn-outline" id="btnClearSearch">✕ Clear</button>
+                </div>
+                <div id="searchResults" class="command-cards"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal" style="display:none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <h3 data-i18n="command.confirm_title">⚠️ Confirm Operation</h3>
+            <p data-i18n="command.confirm_msg">This is a high-risk operation. Are you sure you want to proceed?</p>
+            <div class="modal-actions">
+                <button class="btn btn-danger" id="btnConfirmYes" data-i18n="command.confirm_yes">Yes, Execute</button>
+                <button class="btn btn-outline" id="btnConfirmCancel" data-i18n="command.confirm_cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v=20261026"></script>
+</body>
+</html>

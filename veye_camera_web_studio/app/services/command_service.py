@@ -168,9 +168,11 @@ class CommandService:
         q = query.lower()
         results = []
         for cmd in self.load_commands().get("commands", []):
+            # Search in name, description, id, and script_functions
             if (q in cmd.get("name", {}).get(lang, "").lower()
                     or q in cmd.get("description", {}).get(lang, "").lower()
-                    or q in cmd.get("id", "").lower()):
+                    or q in cmd.get("id", "").lower()
+                    or any(q in func.lower() for func in cmd.get("script_functions", []))):
                 results.append(cmd)
         return results
 
@@ -323,6 +325,7 @@ class CommandService:
         i2c_addr: str = "0x3b",
         params: Optional[List[Any]] = None,
         timeout: int = 5,
+        action: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Execute a command by running its execution_steps against i2c_vread/vwrite."""
         logger.info(f"execute_command: command_id={command_id} i2c_bus={i2c_bus} i2c_addr={i2c_addr} params={params}")
@@ -335,7 +338,7 @@ class CommandService:
         if not steps:
             return self._err(f"Command '{command_id}' has no execution_steps")
 
-        # For RW commands: decide read vs write based on params presence.
+        # For RW commands: decide read vs write based on explicit action or params presence.
         # For read-only commands: only run read steps.
         # For write-only commands: only run write steps.
         mode = command["mode"]
@@ -344,18 +347,18 @@ class CommandService:
         elif mode == "write":
             steps = [s for s in steps if s["op"] == "write"]
         elif mode == "rw":
-            if params:
-                # Write mode: only execute write steps
+            # Use explicit action if provided; otherwise infer from params
+            effective_action = action or ("write" if params else "read")
+            if effective_action == "write":
                 steps = [s for s in steps if s["op"] == "write"]
             else:
-                # Read mode: only execute read steps
                 steps = [s for s in steps if s["op"] == "read"]
 
         if not steps:
             return self._err(f"No executable steps for mode='{mode}' with params={params}")
 
         # Validate params for write steps
-        if command["mode"] in ("write", "rw") and params:
+        if command["mode"] in ("write", "rw") and params and (action == "write" or (action is None and params)):
             err = self.validate_params(command, params)
             if err:
                 return self._err(err)
@@ -384,11 +387,12 @@ class CommandService:
                     r = self._run_i2c_vread(i2c_bus, i2c_addr, reg, reg_type, timeout)
                     if r["ok"]:
                         try:
-                            val = int(r["raw"])
+                            # i2c_vread outputs signed int (%d), convert to unsigned 32-bit
+                            val = int(r["raw"]) & 0xFFFFFFFF
                         except ValueError:
-                            val = r["raw"]
-                        read_values.append(val if isinstance(val, int) else 0)
-                        output_lines.append(f"Read [{reg}] = {r['raw']}")
+                            val = 0
+                        read_values.append(val)
+                        output_lines.append(f"Read [{reg}] = {val}")
                     else:
                         all_ok = False
                         output_lines.append(f"Read [{reg}] FAILED: {r['stderr']}")

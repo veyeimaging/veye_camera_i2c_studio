@@ -23,6 +23,7 @@ class ExecuteRequest(BaseModel):
     i2c_addr: str = "0x3b"
     params: List[Any] = []
     timeout: int = 5
+    action: Optional[str] = None  # "read" or "write"; for rw commands
 
     @validator('i2c_bus')
     def validate_i2c_bus(cls, v):
@@ -141,6 +142,7 @@ def execute_command(command_id: str, request: ExecuteRequest) -> Dict[str, Any]:
             i2c_addr=request.i2c_addr,
             params=request.params,
             timeout=request.timeout,
+            action=request.action,
         )
 
     # Log the operation

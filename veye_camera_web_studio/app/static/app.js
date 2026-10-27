@@ -37,6 +37,7 @@
             "groupTitle", "groupDescription", "commandCards",
             "opPlaceholder", "opPanel", "opTitle", "opMode", "opRisk",
             "opRegSection", "opRegAddr", "opRegType",
+            "opScriptFuncsSection", "opScriptFuncs",
             "opDescription", "opParamsSection", "paramForm", "noParamsMsg",
             "opActions", "btnRead", "btnWrite",
             "opResult", "opNotesSection", "opNotes",
@@ -365,11 +366,16 @@
                 const modeClass = cmd.mode === "read" ? "badge-read" : cmd.mode === "write" ? "badge-write" : "badge-rw";
                 const modeLabel = cmd.mode === "read" ? "R" : cmd.mode === "write" ? "W" : "RW";
                 const riskClass = "badge-risk-" + (cmd.risk_level || "none");
+                const scriptFuncs = cmd.script_functions || [];
+                const scriptFuncsHtml = scriptFuncs.length > 0
+                    ? `<div class="cmd-card-script-funcs">${scriptFuncs.map(f => `<code>${f}</code>`).join(' ')}</div>`
+                    : '';
                 return `
                 <div class="cmd-card fade-in" data-cmd="${cmd.id}">
                     <div class="cmd-card-info">
                         <div class="cmd-card-name">${cmd.name[state.lang] || cmd.name.en}</div>
                         <div class="cmd-card-desc">${cmd.description[state.lang] || cmd.description.en}</div>
+                        ${scriptFuncsHtml}
                     </div>
                     <div class="cmd-card-badges">
                         <span class="badge ${modeClass}">${modeLabel}</span>
@@ -464,6 +470,15 @@
             dom.opRegAddr.textContent = cmd.register.address;
         } else {
             dom.opRegSection.style.display = "none";
+        }
+
+        // Script functions
+        const scriptFuncs = cmd.script_functions || [];
+        if (scriptFuncs.length > 0) {
+            dom.opScriptFuncsSection.style.display = "";
+            dom.opScriptFuncs.innerHTML = scriptFuncs.map(f => `<code class="script-func">${f}</code>`).join(' ');
+        } else {
+            dom.opScriptFuncsSection.style.display = "none";
         }
 
         // Parameters form
@@ -569,6 +584,7 @@
             i2c_addr: cam.i2c_addr || "0x3b",
             params: collectParams(),
             timeout: 5,
+            action: "read",
         };
         await doExecute(body, dom.btnRead);
     }
@@ -586,6 +602,7 @@
             i2c_addr: cam.i2c_addr || "0x3b",
             params: collectParams(),
             timeout: 5,
+            action: "write",
         };
         await doExecute(body, dom.btnWrite);
     }
@@ -620,6 +637,10 @@
         const params = cmd.parameters || [];
         if (params.length === 0) return;
 
+        // Get inverse transform to convert register values to user-facing values
+        const writeTransform = cmd.register?.value_transform?.write || null;
+        const readTransform = cmd.register?.value_transform?.read || null;
+
         // For single-param commands, set the first param from the first read value
         readValues.forEach((val, i) => {
             if (i >= params.length) return;
@@ -635,13 +656,55 @@
                     el.value = String(match.value);
                 }
             } else {
-                // Numeric: set the input value
-                const num = typeof val === "number" ? val : parseInt(val, 10);
+                // Numeric: apply inverse transform to get user-facing value
+                let num = typeof val === "number" ? val : parseInt(val, 10);
                 if (!isNaN(num)) {
+                    // If there's a read transform, use it; otherwise invert the write transform
+                    if (readTransform) {
+                        num = applyTransform(num, readTransform);
+                    } else if (writeTransform) {
+                        num = applyInverseTransform(num, writeTransform);
+                    }
+                    // Round to reasonable precision for float types
+                    if (p.type === "float") {
+                        num = Math.round(num * 10000) / 10000;
+                    }
                     el.value = String(num);
                 }
             }
         });
+    }
+
+    // Apply a transform expression like "value / 10000" to a number
+    function applyTransform(value, expr) {
+        try {
+            // Replace 'value' with the actual number and evaluate safely
+            const sanitized = expr.replace(/value/g, String(value));
+            // Only allow safe math expressions
+            if (/^[\d\s+\-*/().]+$/.test(sanitized)) {
+                return Function('"use strict"; return (' + sanitized + ')')();
+            }
+        } catch (e) {
+            console.warn("applyTransform failed:", expr, e);
+        }
+        return value;
+    }
+
+    // Compute inverse of a transform expression (e.g., "value * 10000" -> "value / 10000")
+    function applyInverseTransform(registerValue, expr) {
+        // Parse simple patterns: "value * N", "value / N", "value + N", "value - N"
+        const match = expr.match(/value\s*([*/+\-])\s*([\d.]+)/);
+        if (match) {
+            const op = match[1];
+            const operand = parseFloat(match[2]);
+            switch (op) {
+                case '*': return registerValue / operand;
+                case '/': return registerValue * operand;
+                case '+': return registerValue - operand;
+                case '-': return registerValue + operand;
+            }
+        }
+        return registerValue;
     }
 
     function showResult(data) {
@@ -684,6 +747,17 @@
                         <div class="result-value">
                             <span class="result-label">°C</span>
                             <span class="result-data">${label}: ${celsius.toFixed(2)} °C</span>
+                        </div>`;
+                    }
+                    // Show transformed value if value_transform.read is defined (skip for temp commands - already handled above)
+                    else if (cmd && cmd.register?.value_transform?.read) {
+                        const transformed = applyTransform(num, cmd.register.value_transform.read);
+                        const unit = cmd.register.value_transform.unit || "";
+                        const displayVal = Number.isInteger(transformed) ? transformed : transformed.toFixed(4).replace(/\.?0+$/, '');
+                        html += `
+                        <div class="result-value">
+                            <span class="result-label">${unit}</span>
+                            <span class="result-data">${label}: ${displayVal}${unit ? ' ' + unit : ''}</span>
                         </div>`;
                     }
                 });

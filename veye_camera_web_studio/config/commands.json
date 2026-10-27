@@ -35,6 +35,9 @@
           "reg": "0x0000",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "manufacturer"
       ]
     },
     {
@@ -72,6 +75,9 @@
           "reg": "0x0004",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "model"
       ]
     },
     {
@@ -109,6 +115,9 @@
           "reg": "0x0008",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "sensorname"
       ]
     },
     {
@@ -146,6 +155,9 @@
           "reg": "0x000C",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "serialno"
       ]
     },
     {
@@ -183,6 +195,9 @@
           "reg": "0x0010",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "version"
       ]
     },
     {
@@ -220,6 +235,9 @@
           "reg": "0x0020",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "timestamp"
       ]
     },
     {
@@ -257,6 +275,9 @@
           "reg": "0x0024",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "errcode"
       ]
     },
     {
@@ -294,6 +315,9 @@
           "reg": "0x0028",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "fmtcap"
       ]
     },
     {
@@ -331,6 +355,9 @@
           "reg": "0x002C",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "readmodecap"
       ]
     },
     {
@@ -368,6 +395,9 @@
           "reg": "0x0030",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "workmodecap"
       ]
     },
     {
@@ -405,6 +435,9 @@
           "reg": "0x0034",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "lanecap"
       ]
     },
     {
@@ -442,6 +475,9 @@
           "reg": "0x005C",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodecap"
       ]
     },
     {
@@ -479,6 +515,9 @@
           "reg": "0x0060",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodenum"
       ]
     },
     {
@@ -524,6 +563,9 @@
           "reg": "0x080C",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "maxwh"
       ]
     },
     {
@@ -565,6 +607,9 @@
           "reg": "0x0810",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "maxfps"
       ]
     },
     {
@@ -610,6 +655,9 @@
           "reg": "0x0848",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "minwh"
       ]
     },
     {
@@ -651,6 +699,9 @@
           "reg": "0x084C",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "minfps"
       ]
     },
     {
@@ -715,6 +766,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "videomode"
       ]
     },
     {
@@ -866,6 +920,10 @@
           "reg_type": 0,
           "value_expr": "{param3}"
         }
+      ],
+      "script_functions": [
+        "curwh",
+        "roi"
       ]
     },
     {
@@ -932,6 +990,9 @@
           "reg_type": 0,
           "value_expr": "int(round({param0} * 10000))"
         }
+      ],
+      "script_functions": [
+        "fps"
       ]
     },
     {
@@ -972,6 +1033,9 @@
           "reg": "0x0064",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodewh1"
       ]
     },
     {
@@ -1012,6 +1076,9 @@
           "reg": "0x0068",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodeparam1"
       ]
     },
     {
@@ -1052,6 +1119,9 @@
           "reg": "0x006C",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodewh2"
       ]
     },
     {
@@ -1092,6 +1162,9 @@
           "reg": "0x0070",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodeparam2"
       ]
     },
     {
@@ -1132,6 +1205,9 @@
           "reg": "0x0074",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodewh3"
       ]
     },
     {
@@ -1172,6 +1248,9 @@
           "reg": "0x0078",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodeparam3"
       ]
     },
     {
@@ -1212,6 +1291,9 @@
           "reg": "0x007C",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodewh4"
       ]
     },
     {
@@ -1252,6 +1334,9 @@
           "reg": "0x0080",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodeparam4"
       ]
     },
     {
@@ -1292,6 +1377,9 @@
           "reg": "0x0084",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodewh5"
       ]
     },
     {
@@ -1332,6 +1420,9 @@
           "reg": "0x0088",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodeparam5"
       ]
     },
     {
@@ -1372,6 +1463,9 @@
           "reg": "0x008C",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodewh6"
       ]
     },
     {
@@ -1412,6 +1506,9 @@
           "reg": "0x0090",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodeparam6"
       ]
     },
     {
@@ -1452,6 +1549,9 @@
           "reg": "0x0094",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodewh7"
       ]
     },
     {
@@ -1492,6 +1592,9 @@
           "reg": "0x0098",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodeparam7"
       ]
     },
     {
@@ -1532,6 +1635,9 @@
           "reg": "0x009C",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodewh8"
       ]
     },
     {
@@ -1572,6 +1678,9 @@
           "reg": "0x00A0",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "videomodeparam8"
       ]
     },
     {
@@ -1657,6 +1766,9 @@
           "reg": "0x0840",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "mipidatarate"
       ]
     },
     {
@@ -1698,6 +1810,9 @@
           "reg": "0x0850",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "fps"
       ]
     },
     {
@@ -1735,6 +1850,9 @@
           "reg": "0x0838",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "readmode"
       ]
     },
     {
@@ -1772,6 +1890,9 @@
           "reg": "0x083C",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "lanenum"
       ]
     },
     {
@@ -1817,6 +1938,9 @@
           "reg": "0x0468",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "framecount"
       ]
     },
     {
@@ -1858,6 +1982,9 @@
           "reg": "0x0058",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "sensortemp"
       ]
     },
     {
@@ -1899,6 +2026,9 @@
           "reg": "0x00A4",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "isptemp"
       ]
     },
     {
@@ -1939,6 +2069,9 @@
           "reg": "0x0C18",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "exptime"
       ]
     },
     {
@@ -1980,6 +2113,9 @@
           "reg": "0x0C28",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "curgain"
       ]
     },
     {
@@ -2017,6 +2153,9 @@
           "reg": "0x0CDC",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "cur_iso"
       ]
     },
     {
@@ -2090,6 +2229,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "expmode"
       ]
     },
     {
@@ -2151,6 +2293,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "aetarget"
       ]
     },
     {
@@ -2224,6 +2369,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "aestrategy"
       ]
     },
     {
@@ -2286,6 +2434,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "aemaxtime"
       ]
     },
     {
@@ -2348,6 +2499,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "aemintime"
       ]
     },
     {
@@ -2415,6 +2569,9 @@
           "reg_type": 0,
           "value_expr": "int(round({param0} * 10))"
         }
+      ],
+      "script_functions": [
+        "aemaxgain"
       ]
     },
     {
@@ -2480,6 +2637,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "metime"
       ]
     },
     {
@@ -2550,6 +2710,9 @@
           "reg_type": 0,
           "value_expr": "int(round({param0} * 10))"
         }
+      ],
+      "script_functions": [
+        "mgain"
       ]
     },
     {
@@ -2666,6 +2829,9 @@
           "reg_type": 0,
           "value_expr": "{param1}"
         }
+      ],
+      "script_functions": [
+        "antiflicker"
       ]
     },
     {
@@ -2771,6 +2937,9 @@
           "reg_type": 0,
           "value_expr": "int(round({param1} * 10))"
         }
+      ],
+      "script_functions": [
+        "slowshutter"
       ]
     },
     {
@@ -2851,6 +3020,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "aeweight"
       ]
     },
     {
@@ -2891,6 +3063,9 @@
           "reg": "0x0C50",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "colortemp"
       ]
     },
     {
@@ -2928,6 +3103,9 @@
           "reg": "0x0C54",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "currgain"
       ]
     },
     {
@@ -2965,6 +3143,9 @@
           "reg": "0x0C58",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "curbgain"
       ]
     },
     {
@@ -3038,6 +3219,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "wbmode"
       ]
     },
     {
@@ -3100,6 +3284,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "awbcolortempmin"
       ]
     },
     {
@@ -3162,6 +3349,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "awbcolortempmax"
       ]
     },
     {
@@ -3223,6 +3413,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "mwbrgain"
       ]
     },
     {
@@ -3284,6 +3477,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "mwbbgain"
       ]
     },
     {
@@ -3345,6 +3541,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "gamma_index"
       ]
     },
     {
@@ -3406,6 +3605,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "sharppen"
       ]
     },
     {
@@ -3467,6 +3669,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "denoise2d"
       ]
     },
     {
@@ -3528,6 +3733,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "denoise3d"
       ]
     },
     {
@@ -3589,6 +3797,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "saturation"
       ]
     },
     {
@@ -3650,6 +3861,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "contrast"
       ]
     },
     {
@@ -3711,6 +3925,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "hue"
       ]
     },
     {
@@ -3772,6 +3989,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "ldc"
       ]
     },
     {
@@ -3833,6 +4053,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "lsc"
       ]
     },
     {
@@ -3894,6 +4117,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "dehaze"
       ]
     },
     {
@@ -3955,6 +4181,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "drc"
       ]
     },
     {
@@ -4073,6 +4302,9 @@
           "reg_type": 0,
           "value_expr": "{param1}"
         }
+      ],
+      "script_functions": [
+        "wdrparam"
       ]
     },
     {
@@ -4134,6 +4366,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "scene_custom"
       ]
     },
     {
@@ -4221,6 +4456,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "workmode"
       ]
     },
     {
@@ -4294,6 +4532,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "trgsrc"
       ]
     },
     {
@@ -4355,6 +4596,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "trgnum"
       ]
     },
     {
@@ -4417,6 +4661,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "trginterval"
       ]
     },
     {
@@ -4455,6 +4702,9 @@
           "reg_type": 0,
           "value_expr": "1"
         }
+      ],
+      "script_functions": [
+        "trgone"
       ]
     },
     {
@@ -4516,6 +4766,9 @@
           "reg_type": 0,
           "value_expr": "1"
         }
+      ],
+      "script_functions": [
+        "trgcount"
       ]
     },
     {
@@ -4589,6 +4842,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "trgedge"
       ]
     },
     {
@@ -4651,6 +4907,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "trgdelay"
       ]
     },
     {
@@ -4713,6 +4972,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "trgexp_delay"
       ]
     },
     {
@@ -4786,6 +5048,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "slavemode"
       ]
     },
     {
@@ -4826,6 +5091,9 @@
           "reg": "0x046C",
           "reg_type": 0
         }
+      ],
+      "script_functions": [
+        "triggercyclemin"
       ]
     },
     {
@@ -4906,6 +5174,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "daynightmode"
       ]
     },
     {
@@ -4967,6 +5238,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "ircutdir"
       ]
     },
     {
@@ -5028,6 +5302,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "pinpolarity"
       ]
     },
     {
@@ -5089,6 +5366,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "ircuttimer"
       ]
     },
     {
@@ -5169,6 +5449,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "outio1_mode"
       ]
     },
     {
@@ -5230,6 +5513,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "outio1_rvs"
       ]
     },
     {
@@ -5291,6 +5577,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "testimg"
       ]
     },
     {
@@ -5374,6 +5663,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "pixelformat"
       ]
     },
     {
@@ -5461,6 +5753,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "imgdir"
       ]
     },
     {
@@ -5534,6 +5829,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "nondiscontinuousmode"
       ]
     },
     {
@@ -5621,6 +5919,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "metadata_mode"
       ]
     },
     {
@@ -5689,6 +5990,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "imgacq"
       ]
     },
     {
@@ -5727,6 +6031,9 @@
           "reg_type": 0,
           "value_expr": "1"
         }
+      ],
+      "script_functions": [
+        "factoryparam"
       ]
     },
     {
@@ -5765,6 +6072,9 @@
           "reg_type": 0,
           "value_expr": "1"
         }
+      ],
+      "script_functions": [
+        "paramsave"
       ]
     },
     {
@@ -5803,6 +6113,9 @@
           "reg_type": 0,
           "value_expr": "1"
         }
+      ],
+      "script_functions": [
+        "reboot"
       ]
     },
     {
@@ -5867,6 +6180,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "i2caddr"
       ]
     },
     {
@@ -5928,6 +6244,9 @@
           "reg_type": 0,
           "value_expr": "{param0}"
         }
+      ],
+      "script_functions": [
+        "redriver"
       ]
     },
     {

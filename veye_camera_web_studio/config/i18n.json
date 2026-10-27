@@ -33,6 +33,7 @@
   "command": {
     "title": { "en": "Command Center", "zh": "命令中心" },
     "search_placeholder": { "en": "Search commands...", "zh": "搜索命令..." },
+    "script_functions": { "en": "Script Functions", "zh": "脚本函数" },
     "execute": { "en": "Execute", "zh": "执行" },
     "read": { "en": "Read", "zh": "读取" },
     "write": { "en": "Write", "zh": "写入" },

@@ -16,6 +16,7 @@
     "camera_detected": { "en": "Cameras Detected", "zh": "检测到的相机" },
     "camera_select": { "en": "Select Camera", "zh": "选择相机" },
     "no_camera": { "en": "No camera detected", "zh": "未检测到相机" },
+    "no_camera_hint": { "en": "Using default I2C settings", "zh": "使用默认 I2C 设置" },
     "rescan": { "en": "Rescan", "zh": "重新扫描" },
     "model": { "en": "Model", "zh": "型号" },
     "version_c": { "en": "C Version", "zh": "C 版本" },

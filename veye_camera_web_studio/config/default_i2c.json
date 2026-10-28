@@ -1,0 +1,4 @@
+{
+  "default_i2c_bus": 10,
+  "default_i2c_addr": "0x3b"
+}

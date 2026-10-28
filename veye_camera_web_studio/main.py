@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VEYE Camera Web Studio",
     description="Web-based tool for managing and debugging VEYE cameras",
-    version="0.1.0",
+    version="0.1.1",
     lifespan=lifespan,
 )
 
@@ -88,14 +88,29 @@ def get_i18n():
         return {"error": "i18n.json not found"}
 
 
+def _load_default_i2c_config() -> dict:
+    """Load default I2C config from config/default_i2c.json."""
+    path = os.path.join(CONFIG_DIR, "default_i2c.json")
+    defaults = {"default_i2c_bus": 10, "default_i2c_addr": "0x3b"}
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+            defaults["default_i2c_bus"] = int(data.get("default_i2c_bus", 10))
+            defaults["default_i2c_addr"] = str(data.get("default_i2c_addr", "0x3b"))
+    except (FileNotFoundError, json.JSONDecodeError, ValueError):
+        pass
+    return defaults
+
+
 @app.get("/api/config")
 def get_config():
     """Return application configuration."""
+    i2c_defaults = _load_default_i2c_config()
     config = {
         "app_name": "VEYE Camera Web Studio",
-        "version": "0.1.0",
-        "default_i2c_bus": 10,
-        "default_i2c_addr": "0x3b",
+        "version": "0.1.1",
+        "default_i2c_bus": i2c_defaults["default_i2c_bus"],
+        "default_i2c_addr": i2c_defaults["default_i2c_addr"],
         "default_timeout": 5,
         "supported_languages": ["en", "zh"],
     }

@@ -195,6 +195,28 @@ body {
     display: flex; flex-direction: column; gap: 6px;
 }
 
+/* Default I2C Info (shown when no camera detected) */
+.default-i2c-info {
+    background: var(--accent-bg);
+    border: 1px solid rgba(79, 143, 247, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-top: 10px;
+    display: flex; flex-direction: column; gap: 6px;
+}
+.default-i2c-hint {
+    font-size: 11px;
+    color: var(--info);
+    font-style: italic;
+    margin-bottom: 4px;
+}
+.default-i2c-info .info-label {
+    color: var(--text-secondary);
+}
+.default-i2c-info .info-value {
+    color: var(--accent);
+}
+
 /* Device Actions */
 .device-actions {
     display: flex; gap: 6px; margin-top: 4px;

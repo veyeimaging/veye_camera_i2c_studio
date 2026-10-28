@@ -17,6 +17,10 @@
         selectedCamera: null,
         platform: "jetson",
         commandRequestCounter: 0, // Track selectCommand requests to prevent race conditions
+        defaultConfig: {
+            i2c_bus: 10,
+            i2c_addr: "0x3b",
+        },
     };
 
     // ========== DOM Cache ==========
@@ -31,6 +35,7 @@
             "cameraSelect", "platformSelect",
             "camModel", "camVerC", "camVerL", "camSerial", "camI2cBus", "camI2cAddr",
             "camVideoNode", "camMediaNode", "camEntityName",
+            "defaultI2cInfo", "defaultI2cBus", "defaultI2cAddr",
             "btnRescan",
             "searchInput", "groupsList",
             "welcomeScreen", "splitView", "searchResultsView",
@@ -138,6 +143,38 @@
         }
     }
 
+    // ========== Default Config ==========
+    async function loadDefaultConfig() {
+        try {
+            const config = await apiGet("/api/config");
+            state.defaultConfig.i2c_bus = config.default_i2c_bus || 10;
+            state.defaultConfig.i2c_addr = config.default_i2c_addr || "0x3b";
+        } catch (e) {
+            console.warn("Failed to load default config:", e);
+        }
+    }
+
+    function updateDefaultI2cDisplay() {
+        dom.defaultI2cBus.textContent = state.defaultConfig.i2c_bus;
+        dom.defaultI2cAddr.textContent = state.defaultConfig.i2c_addr;
+    }
+
+    /**
+     * Get effective I2C bus/addr - from selected camera or defaults
+     */
+    function getEffectiveI2c() {
+        if (state.selectedCamera) {
+            return {
+                bus: parseInt(state.selectedCamera.i2c_bus) || state.defaultConfig.i2c_bus,
+                addr: state.selectedCamera.i2c_addr || state.defaultConfig.i2c_addr,
+            };
+        }
+        return {
+            bus: state.defaultConfig.i2c_bus,
+            addr: state.defaultConfig.i2c_addr,
+        };
+    }
+
     // ========== Camera Probe ==========
     async function probeCameras() {
         const platform = dom.platformSelect.value;
@@ -147,6 +184,7 @@
         // Show loading
         dom.cameraSelectorWrap.style.display = "none";
         dom.cameraDetail.style.display = "none";
+        dom.defaultI2cInfo.style.display = "none";
         dom.cameraList.style.display = "";
         dom.cameraList.innerHTML = `<span class="placeholder">${t("device.scanning")}</span>`;
 
@@ -156,6 +194,9 @@
 
             if (state.cameras.length === 0) {
                 dom.cameraList.innerHTML = `<span class="placeholder">${t("device.no_camera")}</span>`;
+                // Show default I2C info
+                updateDefaultI2cDisplay();
+                dom.defaultI2cInfo.style.display = "";
                 return;
             }
 
@@ -245,10 +286,9 @@
         try {
             let url = `/api/commands?group=${groupId}&lang=${state.lang}`;
             // For video_modes group, pass I2C info for capability-based filtering
-            if (groupId === "video_modes" && state.selectedCamera) {
-                const bus = parseInt(state.selectedCamera.i2c_bus) || 10;
-                const addr = state.selectedCamera.i2c_addr || "0x3b";
-                url += `&i2c_bus=${bus}&i2c_addr=${encodeURIComponent(addr)}`;
+            if (groupId === "video_modes") {
+                const i2c = getEffectiveI2c();
+                url += `&i2c_bus=${i2c.bus}&i2c_addr=${encodeURIComponent(i2c.addr)}`;
             }
             const data = await apiGet(url);
             state.commands = data.commands || [];
@@ -333,11 +373,11 @@
 
     async function setPresetMode(mode) {
         // Execute the videomode command to switch preset mode
-        const cam = state.selectedCamera || {};
+        const i2c = getEffectiveI2c();
         const body = {
             command_id: "videomode",
-            i2c_bus: parseInt(cam.i2c_bus) || 10,
-            i2c_addr: cam.i2c_addr || "0x3b",
+            i2c_bus: i2c.bus,
+            i2c_addr: i2c.addr,
             params: [mode],
             timeout: 5,
         };
@@ -577,11 +617,11 @@
         if (cmd.risk_level === "high" || cmd.requires_confirmation) {
             if (!(await showConfirmModal())) return;
         }
-        const cam = state.selectedCamera || {};
+        const i2c = getEffectiveI2c();
         const body = {
             command_id: cmd.id,
-            i2c_bus: parseInt(cam.i2c_bus) || 10,
-            i2c_addr: cam.i2c_addr || "0x3b",
+            i2c_bus: i2c.bus,
+            i2c_addr: i2c.addr,
             params: collectParams(),
             timeout: 5,
             action: "read",
@@ -595,11 +635,11 @@
         if (cmd.risk_level === "high" || cmd.requires_confirmation) {
             if (!(await showConfirmModal())) return;
         }
-        const cam = state.selectedCamera || {};
+        const i2c = getEffectiveI2c();
         const body = {
             command_id: cmd.id,
-            i2c_bus: parseInt(cam.i2c_bus) || 10,
-            i2c_addr: cam.i2c_addr || "0x3b",
+            i2c_bus: i2c.bus,
+            i2c_addr: i2c.addr,
             params: collectParams(),
             timeout: 5,
             action: "write",
@@ -924,6 +964,7 @@
 
         await loadI18n();
         applyI18n();
+        await loadDefaultConfig();
         await loadSystemInfo();
         await probeCameras();
         await loadGroups();

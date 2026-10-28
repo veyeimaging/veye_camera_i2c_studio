@@ -12,7 +12,7 @@
         <div class="header-left">
             <img src="/static/logo.png" alt="VEYE" class="header-logo">
             <h1 class="logo">VEYE Camera Web Studio</h1>
-            <span class="version">v0.1.0</span>
+            <span class="version">v0.1.1</span>
         </div>
         <div class="header-right">
             <button class="theme-btn" id="btnThemeToggle" title="Toggle theme">🌙</button>
@@ -104,6 +104,18 @@
                     <!-- Fallback: simple camera list -->
                     <div id="cameraList" class="camera-list" style="display:none;">
                         <span class="placeholder" data-i18n="device.scanning">Scanning...</span>
+                    </div>
+                    <!-- Default I2C info (shown when no camera detected) -->
+                    <div id="defaultI2cInfo" class="default-i2c-info" style="display:none;">
+                        <div class="default-i2c-hint" data-i18n="device.no_camera_hint">Using default I2C settings</div>
+                        <div class="info-item">
+                            <span class="info-label" data-i18n="device.i2c_bus">I2C Bus</span>
+                            <span class="info-value" id="defaultI2cBus">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label" data-i18n="device.i2c_addr">I2C Address</span>
+                            <span class="info-value" id="defaultI2cAddr">—</span>
+                        </div>
                     </div>
                 </div>
                 <div class="device-actions">

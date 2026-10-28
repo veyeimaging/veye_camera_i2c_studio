@@ -2,7 +2,7 @@
 CC = gcc
 
 # Compiler flags
-CFLAGS = -Wall -O2
+CFLAGS = -Wall
 
 # Common source file
 COMMON_SRCS = strfunc.c

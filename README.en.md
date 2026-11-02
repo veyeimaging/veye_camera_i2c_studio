@@ -4,7 +4,7 @@
 
 A web-based tool for managing and debugging VEYE cameras. Perform register-level read/write operations directly from your browser.
 
-> **Beta Release** — Currently tested only on Jetson platforms. Only GX/GXC series cameras are supported.
+> **v0.1.2 Beta Release** — Supports Jetson and Raspberry Pi 5 platforms. Only GX/GXC series cameras are supported.
 
 ## Features
 
@@ -101,9 +101,18 @@ Camera hardware
 
 ### Prerequisites
 
-- Python 3
-- GCC (for compiling I2C tools)
-- Jetson platform (currently the only supported platform)
+- Python 3.8+
+- GCC (for compiling I2C tools, only needed if pre-compiled packages unavailable)
+- Supported platforms:
+  - **Nvidia Jetson** (JetPack 4.x/5.x)
+  - **Raspberry Pi 5** (Debian 12+/Bookworm, aarch64)
+  - Raspberry Pi 4 (experimental support)
+  - Rockchip RK3588 (experimental support)
+
+**Raspberry Pi 5 additional dependencies:**
+```bash
+sudo apt install media-ctl gawk
+```
 
 ### Installation & Launch
 
@@ -118,6 +127,13 @@ python3 main.py
 
 Open `http://localhost:8080` in your browser.
 
+**Note:** On Raspberry Pi 5, if network is slow, you can use a proxy:
+```bash
+# Install dependencies via proxy (optional)
+cd veye_camera_web_studio
+.venv/bin/pip install --proxy=http://<PROXY_IP>:<PORT> -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+```
+
 ### One-Command Launch
 
 ```bash
@@ -127,9 +143,23 @@ Open `http://localhost:8080` in your browser.
 ## Known Limitations
 
 - Only **GX/GXC series** cameras are supported (MV series not yet adapted)
-- Only tested on **Jetson** platforms; other platforms (Rockchip, Raspberry Pi) are not yet fully validated
+- **Jetson** and **Raspberry Pi 5** are fully tested
+- Rockchip platform and other Raspberry Pi versions are not yet fully validated
 - Requires I2C bus access permissions (may need root or proper udev rules)
 - Multiple clients accessing the I2C bus concurrently may cause conflicts
+
+## Platform Compatibility
+
+| Platform | Status | Notes |
+|----------|--------|-------|
+| Nvidia Jetson | ✅ Full Support | Original development platform |
+| Raspberry Pi 5 | ✅ Full Support | Tested with Debian 13 / aarch64 |
+| Raspberry Pi 4 | ⚠️ Experimental | Scripts included, needs validation |
+| Rockchip RK3588 | ⚠️ Experimental | Scripts included, needs validation |
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ## License
 

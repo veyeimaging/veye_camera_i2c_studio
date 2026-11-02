@@ -4,7 +4,7 @@
 
 基于 Web 的 VEYE 相机管理与调试工具。通过浏览器即可对相机进行寄存器级别的读写操作。
 
-> **Beta 版本** — 目前仅在 Jetson 平台经过测试，仅支持 GX/GXC 系列相机。
+> **v0.1.2 Beta 版本** — 支持 Jetson 和 Raspberry Pi 5 平台，支持 GX/GXC 系列相机。
 
 ## 1. 功能
 
@@ -101,9 +101,18 @@ i2c_vread / i2c_vwrite (C 工具)
 
 ### 5.1 前置要求
 
-- Python 3
-- GCC（用于编译 I2C 工具）
-- Jetson 平台（当前仅支持）
+- Python 3.8+
+- GCC（用于编译 I2C 工具，仅在无预编译包时需要）
+- 支持的平台：
+  - **Nvidia Jetson** (JetPack 4.x/5.x)
+  - **Raspberry Pi 5** (Debian 12+/Bookworm, aarch64)
+  - Raspberry Pi 4 (实验性支持)
+  - Rockchip RK3588 (实验性支持)
+
+**树莓派5 额外依赖：**
+```bash
+sudo apt install media-ctl gawk
+```
 
 ### 5.2 安装与启动
 
@@ -118,6 +127,13 @@ python3 main.py
 
 浏览器打开 `http://localhost:8080` 即可使用。
 
+**注意：** 在树莓派5上，如果网络较慢，可以使用代理：
+```bash
+# 使用代理安装依赖（可选）
+cd veye_camera_web_studio
+.venv/bin/pip install --proxy=http://<代理IP>:<端口> -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+```
+
 ### 5.3 一键启动
 
 ```bash
@@ -127,10 +143,24 @@ python3 main.py
 ## 6. 已知限制
 
 - 仅支持 **GX/GXC 系列**相机（MV 系列尚未适配）
-- 仅在 **Jetson** 平台测试过，其他平台（Rockchip、Raspberry Pi）未经充分验证
+- **Jetson** 和 **Raspberry Pi 5** 已完全测试
+- Rockchip 平台和其他树莓派版本未经充分验证
 - 需要 I2C 总线访问权限（可能需要 root 或正确的 udev 规则）
 - 多客户端并发访问 I2C 总线时可能出现冲突
 
-## 7. License
+## 7. 平台兼容性
+
+| 平台 | 状态 | 备注 |
+|------|------|------|
+| Nvidia Jetson | ✅ 完全支持 | 原始开发平台 |
+| Raspberry Pi 5 | ✅ 完全支持 | Debian 13 / aarch64 已测试 |
+| Raspberry Pi 4 | ⚠️ 实验性 | 脚本已包含，待验证 |
+| Rockchip RK3588 | ⚠️ 实验性 | 脚本已包含，待验证 |
+
+## 8. 版本历史
+
+查看 [CHANGELOG.md](CHANGELOG.md) 了解详细的版本更新记录。
+
+## 9. License
 
 MIT

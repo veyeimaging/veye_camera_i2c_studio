@@ -54,7 +54,8 @@ class SystemService:
                 content = f.read().lower()
                 if "raspberry" in content or "bcm2" in content:
                     # Detect Pi 5 vs older
-                    if "bcm2712" in content:
+                    # Check for bcm2712 (Pi 5 chipset) or "raspberry pi 5" in model
+                    if "bcm2712" in content or "raspberry pi 5" in content:
                         return "rpi5"
                     return "rpi"
         except (FileNotFoundError, PermissionError):

@@ -1,0 +1,4481 @@
+{
+  "commands": [
+    {
+      "id": "manufacturer",
+      "name": {
+        "en": "Manufacturer",
+        "zh": "制造商"
+      },
+      "description": {
+        "en": "Read the manufacturer name. Register value (32-bit): 0x56455945 = ASCII \"VEYE\".",
+        "zh": "读取制造商名称。寄存器值（32位）：0x56455945 = ASCII \"VEYE\"。"
+      },
+      "group": "device_info",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0000",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0000",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "model",
+      "name": {
+        "en": "Model",
+        "zh": "型号"
+      },
+      "description": {
+        "en": "Read the product model code.\n0x0178: MV-MIPI-IMX178M, 0x0130: MV-MIPI-SC130M, 0x0265: MV-MIPI-IMX265M,\n0x0264: MV-MIPI-IMX264M, 0x0296: MV-MIPI-IMX296M, 0x0287: MV-MIPI-IMX287M,\n0x4002: MV-MIPI-GMAX4002M, 0x8132: RAW-MIPI-SC132M, 0x8234: RAW-MIPI-AR0234M,\n0x8462: RAW-MIPI-IMX462M, 0x8535: RAW-MIPI-SC535M.",
+        "zh": "读取产品型号代码。\n0x0178: MV-MIPI-IMX178M, 0x0130: MV-MIPI-SC130M, 0x0265: MV-MIPI-IMX265M,\n0x0264: MV-MIPI-IMX264M, 0x0296: MV-MIPI-IMX296M, 0x0287: MV-MIPI-IMX287M,\n0x4002: MV-MIPI-GMAX4002M, 0x8132: RAW-MIPI-SC132M, 0x8234: RAW-MIPI-AR0234M,\n0x8462: RAW-MIPI-IMX462M, 0x8535: RAW-MIPI-SC535M。"
+      },
+      "group": "device_info",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0004",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0004",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "sensorname",
+      "name": {
+        "en": "Sensor Model",
+        "zh": "传感器型号"
+      },
+      "description": {
+        "en": "Read the sensor model name.\n0x178: IMX178LLJ, 0x130: SC130GS, 0x265: IMX265LLR, 0x264: IMX264LLR,\n0x296: IMX296LLR, 0x287: IMX287LLR, 0x132: SC132GS, 0x234: AR0234CS,\n0x462: IMX462LLR, 0x535: SC535HGS, 0x4002: GMAX4002-AVM.",
+        "zh": "读取传感器型号名称。\n0x178: IMX178LLJ, 0x130: SC130GS, 0x265: IMX265LLR, 0x264: IMX264LLR,\n0x296: IMX296LLR, 0x287: IMX287LLR, 0x132: SC132GS, 0x234: AR0234CS,\n0x462: IMX462LLR, 0x535: SC535HGS, 0x4002: GMAX4002-AVM。"
+      },
+      "group": "device_info",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0008",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0008",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "serialno",
+      "name": {
+        "en": "Serial Number",
+        "zh": "序列号"
+      },
+      "description": {
+        "en": "Read the factory serial number.",
+        "zh": "读取出厂序列号。"
+      },
+      "group": "device_info",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x000C",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x000C",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "version",
+      "name": {
+        "en": "Device Version",
+        "zh": "设备版本"
+      },
+      "description": {
+        "en": "Read firmware version. High 16 bits = Control version, Low 16 bits = Logic version.",
+        "zh": "读取固件版本号。高16位 = 控制版本，低16位 = 逻辑版本。"
+      },
+      "group": "device_info",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0010",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0010",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "timestamp",
+      "name": {
+        "en": "Time Stamp",
+        "zh": "时间戳"
+      },
+      "description": {
+        "en": "Read time after system startup in milliseconds.",
+        "zh": "读取系统启动后的时间（毫秒）。"
+      },
+      "group": "device_info",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0020",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0020",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "errcode",
+      "name": {
+        "en": "Error Code",
+        "zh": "错误码"
+      },
+      "description": {
+        "en": "Read the error code register. bit0=sensor error, bit1=startup error, bit2=comm error, bit5=AA target unreachable, bit6=auth failure.",
+        "zh": "读取错误码寄存器。bit0=传感器错误, bit1=启动错误, bit2=通信错误, bit5=AA目标不可达, bit6=授权失败。"
+      },
+      "group": "device_info",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0024",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0024",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "fmtcap",
+      "name": {
+        "en": "Format Capability",
+        "zh": "格式能力"
+      },
+      "description": {
+        "en": "Read data format capability bitmask. bit0=Mono8, bit1=Mono10, bit2=Mono12, bit3=Mono14, bit4=UYVY, bit5=Temperature sensor.",
+        "zh": "读取数据格式能力位掩码。bit0=Mono8, bit1=Mono10, bit2=Mono12, bit3=Mono14, bit4=UYVY, bit5=温度传感器。"
+      },
+      "group": "capabilities",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0028",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0028",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "readmodecap",
+      "name": {
+        "en": "Read Mode Capability",
+        "zh": "读取模式能力"
+      },
+      "description": {
+        "en": "Read mode capability. bit0=Normal, bit1=Binning, bit2=Subsampling.",
+        "zh": "读取模式能力。bit0=普通, bit1=Binning, bit2=Subsampling。"
+      },
+      "group": "capabilities",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x002C",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x002C",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "trgmodecap",
+      "name": {
+        "en": "Trigger Mode Capability",
+        "zh": "触发模式能力"
+      },
+      "description": {
+        "en": "Read trigger mode capability. bit0=Video streaming, bit1=Normal trigger, bit2=Rolling shutter multi-frame, bit3=Pulse trigger.",
+        "zh": "读取触发模式能力。bit0=视频流, bit1=普通触发, bit2=卷帘多帧触发, bit3=脉冲触发。"
+      },
+      "group": "capabilities",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0030",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0030",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "lanecap",
+      "name": {
+        "en": "Lane Capability",
+        "zh": "Lane 能力"
+      },
+      "description": {
+        "en": "Read supported MIPI lane count capability. e.g. 0x2=2 lanes, 0xA=2+4 lanes.",
+        "zh": "读取支持的 MIPI Lane 数量能力。如 0x2=2 lanes, 0xA=2+4 lanes。"
+      },
+      "group": "capabilities",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0034",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0034",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "sensortemp",
+      "name": {
+        "en": "Sensor Temperature",
+        "zh": "传感器温度"
+      },
+      "description": {
+        "en": "Read sensor junction temperature in Kelvin. Register value = Kelvin * 100.",
+        "zh": "读取传感器结温（开尔文）。寄存器值 = 开尔文 * 100。"
+      },
+      "group": "capabilities",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0058",
+        "reg_type": "arm",
+        "value_transform": {
+          "read": "value / 100",
+          "unit": "K"
+        }
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0058",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "trgcyclemin",
+      "name": {
+        "en": "Min Trigger Cycle",
+        "zh": "最小触发周期"
+      },
+      "description": {
+        "en": "Read minimum trigger signal period in microseconds.",
+        "zh": "读取最小触发信号周期（微秒）。"
+      },
+      "group": "capabilities",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x006C",
+        "reg_type": "arm",
+        "value_transform": {
+          "unit": "μs"
+        }
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x006C",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "trgcyclemax",
+      "name": {
+        "en": "Max Trigger Cycle",
+        "zh": "最大触发周期"
+      },
+      "description": {
+        "en": "Read maximum trigger signal period in microseconds.",
+        "zh": "读取最大触发信号周期（微秒）。"
+      },
+      "group": "capabilities",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0070",
+        "reg_type": "arm",
+        "value_transform": {
+          "unit": "μs"
+        }
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0070",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "roi",
+      "name": {
+        "en": "ROI Configuration",
+        "zh": "ROI 配置"
+      },
+      "description": {
+        "en": "Set/get Region of Interest (x offset, y offset, width, height).",
+        "zh": "设置/获取感兴趣区域（x 偏移, y 偏移, 宽度, 高度）。"
+      },
+      "group": "video_modes",
+      "mode": "rw",
+      "risk_level": "medium",
+      "register": {
+        "address": "0x0820",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "offset_x",
+          "label": {
+            "en": "Offset X",
+            "zh": "X 偏移"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 65535,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "ROI X offset",
+            "zh": "ROI X 偏移"
+          }
+        },
+        {
+          "name": "offset_y",
+          "label": {
+            "en": "Offset Y",
+            "zh": "Y 偏移"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 65535,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "ROI Y offset",
+            "zh": "ROI Y 偏移"
+          }
+        },
+        {
+          "name": "width",
+          "label": {
+            "en": "Width",
+            "zh": "宽度"
+          },
+          "type": "integer",
+          "min": 1,
+          "max": 65535,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "ROI width",
+            "zh": "ROI 宽度"
+          }
+        },
+        {
+          "name": "height",
+          "label": {
+            "en": "Height",
+            "zh": "高度"
+          },
+          "type": "integer",
+          "min": 1,
+          "max": 65535,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "ROI height",
+            "zh": "ROI 高度"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {
+        "en": "Writes four registers: 0x0820 (X), 0x0824 (Y), 0x0818 (W), 0x081C (H). Write height last.",
+        "zh": "写入四个寄存器：0x0820（X）、0x0824（Y）、0x0818（W）、0x081C（H）。高度后写入。"
+      },
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0820",
+          "reg_type": 0
+        },
+        {
+          "op": "read",
+          "reg": "0x0824",
+          "reg_type": 0
+        },
+        {
+          "op": "read",
+          "reg": "0x0818",
+          "reg_type": 0
+        },
+        {
+          "op": "read",
+          "reg": "0x081C",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0820",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        },
+        {
+          "op": "write",
+          "reg": "0x0824",
+          "reg_type": 0,
+          "value_expr": "{param1}"
+        },
+        {
+          "op": "write",
+          "reg": "0x0818",
+          "reg_type": 0,
+          "value_expr": "{param2}"
+        },
+        {
+          "op": "write",
+          "reg": "0x081C",
+          "reg_type": 0,
+          "value_expr": "{param3}"
+        }
+      ]
+    },
+    {
+      "id": "fps",
+      "name": {
+        "en": "Frame Rate",
+        "zh": "帧率"
+      },
+      "description": {
+        "en": "Set/get frame rate. Register value = fps * 100.",
+        "zh": "设置/获取帧率。寄存器值 = fps * 100。"
+      },
+      "group": "video_modes",
+      "mode": "rw",
+      "risk_level": "medium",
+      "register": {
+        "address": "0x0814",
+        "reg_type": "arm",
+        "value_transform": {
+          "read": "value / 100",
+          "write": "int(round({param0} * 100))",
+          "unit": "fps"
+        }
+      },
+      "parameters": [
+        {
+          "name": "fps",
+          "label": {
+            "en": "FPS",
+            "zh": "帧率"
+          },
+          "type": "float",
+          "min": 0.01,
+          "max": 200,
+          "step": 0.01,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Frame rate",
+            "zh": "帧率"
+          },
+          "unit": "fps"
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "S",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0814",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0814",
+          "reg_type": 0,
+          "value_expr": "int(round({param0} * 100))"
+        }
+      ]
+    },
+    {
+      "id": "maxwh",
+      "name": {
+        "en": "Max Resolution",
+        "zh": "最大分辨率"
+      },
+      "description": {
+        "en": "Read sensor maximum width and height.",
+        "zh": "读取传感器最大宽度和高度。"
+      },
+      "group": "capabilities",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0808",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {
+        "en": "Reads two registers: 0x0808 (width) and 0x080C (height).",
+        "zh": "读取两个寄存器：0x0808（宽度）和 0x080C（高度）。"
+      },
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0808",
+          "reg_type": 0
+        },
+        {
+          "op": "read",
+          "reg": "0x080C",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "maxfps",
+      "name": {
+        "en": "Max Frame Rate",
+        "zh": "最大帧率"
+      },
+      "description": {
+        "en": "Read maximum frame rate. Register value = fps * 100.",
+        "zh": "读取最大帧率。寄存器值 = fps * 100。"
+      },
+      "group": "capabilities",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0810",
+        "reg_type": "arm",
+        "value_transform": {
+          "read": "value / 100",
+          "unit": "fps"
+        }
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0810",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "minwh",
+      "name": {
+        "en": "Min Resolution",
+        "zh": "最小分辨率"
+      },
+      "description": {
+        "en": "Read minimum supported ROI width and height.",
+        "zh": "读取最小支持的 ROI 宽度和高度。"
+      },
+      "group": "capabilities",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0844",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {
+        "en": "Reads two registers: 0x0844 (width) and 0x0848 (height).",
+        "zh": "读取两个寄存器：0x0844（宽度）和 0x0848（高度）。"
+      },
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0844",
+          "reg_type": 0
+        },
+        {
+          "op": "read",
+          "reg": "0x0848",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "minfps",
+      "name": {
+        "en": "Min Frame Rate",
+        "zh": "最小帧率"
+      },
+      "description": {
+        "en": "Read minimum frame rate. Register value = fps * 10000.",
+        "zh": "读取最小帧率。寄存器值 = fps * 10000。"
+      },
+      "group": "capabilities",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x084C",
+        "reg_type": "arm",
+        "value_transform": {
+          "read": "value / 10000",
+          "unit": "fps"
+        }
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x084C",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "curwh",
+      "name": {
+        "en": "Current Resolution",
+        "zh": "当前分辨率"
+      },
+      "description": {
+        "en": "Read current ROI width and height.",
+        "zh": "读取当前 ROI 宽度和高度。"
+      },
+      "group": "current_status",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0818",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {
+        "en": "Reads two registers: 0x0818 (ROI Width) and 0x081C (ROI Height).",
+        "zh": "读取两个寄存器：0x0818（ROI 宽度）和 0x081C（ROI 高度）。"
+      },
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0818",
+          "reg_type": 0
+        },
+        {
+          "op": "read",
+          "reg": "0x081C",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "readmode",
+      "name": {
+        "en": "Read Mode",
+        "zh": "读取模式"
+      },
+      "description": {
+        "en": "Set/get read mode. 0=Normal, 1=Binning, 2=Subsampling.",
+        "zh": "设置/获取读取模式。0=普通, 1=Binning, 2=Subsampling。"
+      },
+      "group": "current_status",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0838",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "mode",
+          "label": {
+            "en": "Mode",
+            "zh": "模式"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Normal",
+                "zh": "普通"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Binning",
+                "zh": "Binning"
+              }
+            },
+            {
+              "value": 2,
+              "label": {
+                "en": "Subsampling",
+                "zh": "Subsampling"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "Read mode",
+            "zh": "读取模式"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0838",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0838",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "lanenum",
+      "name": {
+        "en": "Lane Number",
+        "zh": "Lane 数量"
+      },
+      "description": {
+        "en": "Read/set current MIPI lane count (2 or 4).",
+        "zh": "读取/设置当前 MIPI Lane 数量（2 或 4）。"
+      },
+      "group": "current_status",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x083C",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "lanes",
+          "label": {
+            "en": "Lanes",
+            "zh": "Lane数"
+          },
+          "type": "integer",
+          "min": 2,
+          "max": 4,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Number of lanes",
+            "zh": "Lane数量"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x083C",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x083C",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "mipidatarate",
+      "name": {
+        "en": "MIPI Data Rate",
+        "zh": "MIPI 数据率"
+      },
+      "description": {
+        "en": "Read MIPI data rate per lane in kbps.",
+        "zh": "读取每 Lane 的 MIPI 数据率（kbps）。"
+      },
+      "group": "current_status",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0840",
+        "reg_type": "arm",
+        "value_transform": {
+          "unit": "kbps"
+        }
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0840",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "framecount",
+      "name": {
+        "en": "Frame Count",
+        "zh": "帧计数"
+      },
+      "description": {
+        "en": "Read sensor and output frame counts.",
+        "zh": "读取传感器帧计数和输出帧计数。"
+      },
+      "group": "current_status",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0464",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {
+        "en": "Reads two registers: 0x0464 (sensor) and 0x0468 (output).",
+        "zh": "读取两个寄存器：0x0464（传感器）和 0x0468（输出）。"
+      },
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0464",
+          "reg_type": 0
+        },
+        {
+          "op": "read",
+          "reg": "0x0468",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "fps_ex",
+      "name": {
+        "en": "Frame Rate Extended",
+        "zh": "帧率扩展"
+      },
+      "description": {
+        "en": "Read/set extended framerate. Register value = fps * 10000.",
+        "zh": "读取/设置扩展帧率。寄存器值 = fps * 10000。"
+      },
+      "group": "current_status",
+      "mode": "rw",
+      "risk_level": "medium",
+      "register": {
+        "address": "0x0850",
+        "reg_type": "arm",
+        "value_transform": {
+          "read": "value / 10000",
+          "write": "int(round({param0} * 10000))",
+          "unit": "fps"
+        }
+      },
+      "parameters": [
+        {
+          "name": "fps",
+          "label": {
+            "en": "FPS",
+            "zh": "帧率"
+          },
+          "type": "float",
+          "min": 0.0001,
+          "max": 200,
+          "step": 0.0001,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Extended frame rate",
+            "zh": "扩展帧率"
+          },
+          "unit": "fps"
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "S",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0850",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0850",
+          "reg_type": 0,
+          "value_expr": "int(round({param0} * 10000))"
+        }
+      ]
+    },
+    {
+      "id": "maxexptime_cur",
+      "name": {
+        "en": "Current Max Exposure",
+        "zh": "当前最大曝光"
+      },
+      "description": {
+        "en": "Read maximum exposure time in current mode (unit: microseconds).",
+        "zh": "读取当前模式下的最大曝光时间（微秒）。"
+      },
+      "group": "current_status",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0C8C",
+        "reg_type": "arm",
+        "value_transform": {
+          "unit": "μs"
+        }
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C8C",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "minexptime_cur",
+      "name": {
+        "en": "Current Min Exposure",
+        "zh": "当前最小曝光"
+      },
+      "description": {
+        "en": "Read minimum exposure time in current mode (unit: 0.1 microseconds).",
+        "zh": "读取当前模式下的最小曝光时间（单位：0.1 微秒）。"
+      },
+      "group": "current_status",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0C90",
+        "reg_type": "arm",
+        "value_transform": {
+          "read": "value * 0.1",
+          "unit": "μs"
+        }
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C90",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "expmode",
+      "name": {
+        "en": "Exposure Mode",
+        "zh": "曝光模式"
+      },
+      "description": {
+        "en": "Set/get exposure mode. 0=Manual, 1=Auto Once, 2=Auto Continuous.",
+        "zh": "设置/获取曝光模式。0=手动, 1=自动一次, 2=自动连续。"
+      },
+      "group": "exposure_gain",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0C04",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "mode",
+          "label": {
+            "en": "Mode",
+            "zh": "模式"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Manual",
+                "zh": "手动"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Auto Once",
+                "zh": "自动一次"
+              }
+            },
+            {
+              "value": 2,
+              "label": {
+                "en": "Auto Continuous",
+                "zh": "自动连续"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "Exposure mode",
+            "zh": "曝光模式"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C04",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0C04",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "gainmode",
+      "name": {
+        "en": "Gain Mode",
+        "zh": "增益模式"
+      },
+      "description": {
+        "en": "Set/get gain mode. 0=Manual, 1=Auto Once, 2=Auto Continuous.",
+        "zh": "设置/获取增益模式。0=手动, 1=自动一次, 2=自动连续。"
+      },
+      "group": "exposure_gain",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0C1C",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "mode",
+          "label": {
+            "en": "Mode",
+            "zh": "模式"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Manual",
+                "zh": "手动"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Auto Once",
+                "zh": "自动一次"
+              }
+            },
+            {
+              "value": 2,
+              "label": {
+                "en": "Auto Continuous",
+                "zh": "自动连续"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "Gain mode",
+            "zh": "增益模式"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C1C",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0C1C",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "aatarget",
+      "name": {
+        "en": "AE Target Brightness",
+        "zh": "AE 目标亮度"
+      },
+      "description": {
+        "en": "Set/get target brightness for auto exposure. Range [0, 255].",
+        "zh": "设置/获取自动曝光目标亮度。范围 [0, 255]。"
+      },
+      "group": "exposure_gain",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0C08",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "target",
+          "label": {
+            "en": "Target",
+            "zh": "目标值"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 255,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Target brightness",
+            "zh": "目标亮度"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C08",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0C08",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "metime",
+      "name": {
+        "en": "Manual Exposure Time",
+        "zh": "手动曝光时间"
+      },
+      "description": {
+        "en": "Set/get manual exposure time in microseconds. Range [16, 1000000].",
+        "zh": "设置/获取手动曝光时间（微秒）。范围 [16, 1000000]。"
+      },
+      "group": "exposure_gain",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0C10",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "time",
+          "label": {
+            "en": "Time",
+            "zh": "时间"
+          },
+          "type": "integer",
+          "min": 16,
+          "max": 1000000,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Exposure time",
+            "zh": "曝光时间"
+          },
+          "unit": "μs"
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {
+        "en": "Unit: microseconds.",
+        "zh": "单位：微秒。"
+      },
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C10",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0C10",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "aemaxtime",
+      "name": {
+        "en": "AE Max Exposure Time",
+        "zh": "AE 最大曝光时间"
+      },
+      "description": {
+        "en": "Set/get maximum exposure time in auto exposure mode. Range [16, 1000000] us.",
+        "zh": "设置/获取自动曝光模式下的最大曝光时间。范围 [16, 1000000] 微秒。"
+      },
+      "group": "exposure_gain",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0C14",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "max_time",
+          "label": {
+            "en": "Max Time",
+            "zh": "最大时间"
+          },
+          "type": "integer",
+          "min": 16,
+          "max": 1000000,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Max exposure time",
+            "zh": "最大曝光时间"
+          },
+          "unit": "μs"
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C14",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0C14",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "exptime",
+      "name": {
+        "en": "Current Exposure Time",
+        "zh": "当前曝光时间"
+      },
+      "description": {
+        "en": "Read current exposure time in microseconds.",
+        "zh": "读取当前曝光时间（微秒）。"
+      },
+      "group": "exposure_gain",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0C18",
+        "reg_type": "arm",
+        "value_transform": {
+          "unit": "μs"
+        }
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "R",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C18",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "mgain",
+      "name": {
+        "en": "Manual Gain",
+        "zh": "手动增益"
+      },
+      "description": {
+        "en": "Set/get manual gain value. Register value = dB * 10.",
+        "zh": "设置/获取手动增益值。寄存器值 = dB * 10。"
+      },
+      "group": "exposure_gain",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0C20",
+        "reg_type": "arm",
+        "value_transform": {
+          "read": "value / 10",
+          "write": "int(round({param0} * 10))",
+          "unit": "dB"
+        }
+      },
+      "parameters": [
+        {
+          "name": "gain",
+          "label": {
+            "en": "Gain",
+            "zh": "增益"
+          },
+          "type": "float",
+          "min": 0,
+          "max": 409.5,
+          "step": 0.1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Gain value",
+            "zh": "增益值"
+          },
+          "unit": "dB"
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {
+        "en": "Register value is 10x the actual dB value.",
+        "zh": "寄存器值为实际 dB 值的 10 倍。"
+      },
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C20",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0C20",
+          "reg_type": 0,
+          "value_expr": "int(round({param0} * 10))"
+        }
+      ]
+    },
+    {
+      "id": "agmaxgain",
+      "name": {
+        "en": "AE Max Gain",
+        "zh": "自动最大增益"
+      },
+      "description": {
+        "en": "Set/get maximum gain in auto gain mode. Register value = dB * 10.",
+        "zh": "设置/获取自动增益模式下的最大增益。寄存器值 = dB * 10。"
+      },
+      "group": "exposure_gain",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0C24",
+        "reg_type": "arm",
+        "value_transform": {
+          "read": "value / 10",
+          "write": "int(round({param0} * 10))",
+          "unit": "dB"
+        }
+      },
+      "parameters": [
+        {
+          "name": "max_gain",
+          "label": {
+            "en": "Max Gain",
+            "zh": "最大增益"
+          },
+          "type": "float",
+          "min": 0,
+          "max": 409.5,
+          "step": 0.1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Max gain value",
+            "zh": "最大增益值"
+          },
+          "unit": "dB"
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C24",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0C24",
+          "reg_type": 0,
+          "value_expr": "int(round({param0} * 10))"
+        }
+      ]
+    },
+    {
+      "id": "curgain",
+      "name": {
+        "en": "Current Gain",
+        "zh": "当前增益"
+      },
+      "description": {
+        "en": "Read current gain value. Register value = dB * 10.",
+        "zh": "读取当前增益值。寄存器值 = dB * 10。"
+      },
+      "group": "exposure_gain",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0C28",
+        "reg_type": "arm",
+        "value_transform": {
+          "read": "value / 10",
+          "unit": "dB"
+        }
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "R",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C28",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "aaroi",
+      "name": {
+        "en": "AE/AG ROI",
+        "zh": "AE/AG ROI"
+      },
+      "description": {
+        "en": "Set/get AE/AG Region of Interest (x, y, width, height).",
+        "zh": "设置/获取 AE/AG 感兴趣区域（x, y, 宽度, 高度）。"
+      },
+      "group": "exposure_gain",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0C2C",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "offset_x",
+          "label": {
+            "en": "Offset X",
+            "zh": "X 偏移"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 65535,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "AE ROI X offset",
+            "zh": "AE ROI X 偏移"
+          }
+        },
+        {
+          "name": "offset_y",
+          "label": {
+            "en": "Offset Y",
+            "zh": "Y 偏移"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 65535,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "AE ROI Y offset",
+            "zh": "AE ROI Y 偏移"
+          }
+        },
+        {
+          "name": "width",
+          "label": {
+            "en": "Width",
+            "zh": "宽度"
+          },
+          "type": "integer",
+          "min": 16,
+          "max": 65535,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "AE ROI width",
+            "zh": "AE ROI 宽度"
+          }
+        },
+        {
+          "name": "height",
+          "label": {
+            "en": "Height",
+            "zh": "高度"
+          },
+          "type": "integer",
+          "min": 16,
+          "max": 65535,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "AE ROI height",
+            "zh": "AE ROI 高度"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {
+        "en": "Writes four registers: 0x0C2C (X), 0x0C30 (Y), 0x0C34 (W), 0x0C38 (H). Write Y last.",
+        "zh": "写入四个寄存器：0x0C2C（X）、0x0C30（Y）、0x0C34（W）、0x0C38（H）。Y 最后写入。"
+      },
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C2C",
+          "reg_type": 0
+        },
+        {
+          "op": "read",
+          "reg": "0x0C30",
+          "reg_type": 0
+        },
+        {
+          "op": "read",
+          "reg": "0x0C34",
+          "reg_type": 0
+        },
+        {
+          "op": "read",
+          "reg": "0x0C38",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0C2C",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        },
+        {
+          "op": "write",
+          "reg": "0x0C30",
+          "reg_type": 0,
+          "value_expr": "{param1}"
+        },
+        {
+          "op": "write",
+          "reg": "0x0C34",
+          "reg_type": 0,
+          "value_expr": "{param2}"
+        },
+        {
+          "op": "write",
+          "reg": "0x0C38",
+          "reg_type": 0,
+          "value_expr": "{param3}"
+        }
+      ]
+    },
+    {
+      "id": "aaroienable",
+      "name": {
+        "en": "AE/AG ROI Enable",
+        "zh": "AE/AG ROI 使能"
+      },
+      "description": {
+        "en": "Enable/disable AE statistics ROI. 0=Full screen, 1=Enable ROI.",
+        "zh": "使能/禁用 AE 统计 ROI。0=全屏统计, 1=启用 ROI。"
+      },
+      "group": "exposure_gain",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0C80",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "enable",
+          "label": {
+            "en": "Enable",
+            "zh": "使能"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Full screen",
+                "zh": "全屏"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "ROI enabled",
+                "zh": "ROI 使能"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "AE ROI enable",
+            "zh": "AE ROI 使能"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C80",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0C80",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "exptime_range",
+      "name": {
+        "en": "Exposure Time Range",
+        "zh": "曝光时间范围"
+      },
+      "description": {
+        "en": "Read current exposure time range. Min register (0x0C90) unit: 0.1us, Max register (0x0C8C) unit: us.",
+        "zh": "读取当前曝光时间范围。最小寄存器（0x0C90）单位：0.1us，最大寄存器（0x0C8C）单位：us。"
+      },
+      "group": "exposure_gain",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x0C8C",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {
+        "en": "Reads two registers: 0x0C8C (max us) and 0x0C90 (min * 0.1 us).",
+        "zh": "读取两个寄存器：0x0C8C（最大值 us）和 0x0C90（最小值 * 0.1 us）。"
+      },
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C8C",
+          "reg_type": 0
+        },
+        {
+          "op": "read",
+          "reg": "0x0C90",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "gamma",
+      "name": {
+        "en": "Gamma",
+        "zh": "Gamma"
+      },
+      "description": {
+        "en": "Set/get gamma value. Register value = actual gamma * 100. e.g. 80 = gamma 0.8.",
+        "zh": "设置/获取 Gamma 值。寄存器值 = 实际 Gamma * 100。如 80 = Gamma 0.8。"
+      },
+      "group": "isp_processing",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0C60",
+        "reg_type": "arm",
+        "value_transform": {
+          "read": "value / 100",
+          "write": "int(round({param0} * 100))"
+        }
+      },
+      "parameters": [
+        {
+          "name": "gamma",
+          "label": {
+            "en": "Gamma",
+            "zh": "Gamma"
+          },
+          "type": "float",
+          "min": 0.01,
+          "max": 4.0,
+          "step": 0.01,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Gamma value",
+            "zh": "Gamma 值"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C60",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0C60",
+          "reg_type": 0,
+          "value_expr": "int(round({param0} * 100))"
+        }
+      ]
+    },
+    {
+      "id": "gammaenable",
+      "name": {
+        "en": "Gamma Enable",
+        "zh": "Gamma 使能"
+      },
+      "description": {
+        "en": "Enable/disable gamma correction via ISP module ctrl register (bit5).",
+        "zh": "通过 ISP 模块控制寄存器（bit5）使能/禁用 Gamma 校正。"
+      },
+      "group": "isp_processing",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0C00",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "enable",
+          "label": {
+            "en": "Enable",
+            "zh": "使能"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Disable",
+                "zh": "禁用"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Enable",
+                "zh": "启用"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "Gamma enable",
+            "zh": "Gamma 使能"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C00",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0C00",
+          "reg_type": 0,
+          "value_expr": "{read0} | 0x20"
+        },
+        {
+          "op": "write",
+          "reg": "0x0C00",
+          "reg_type": 0,
+          "value_expr": "{read0} & ~0x20"
+        }
+      ]
+    },
+    {
+      "id": "dpcenable",
+      "name": {
+        "en": "DPC Enable",
+        "zh": "DPC 使能"
+      },
+      "description": {
+        "en": "Enable/disable defect pixel correction via ISP module ctrl register (bit4).",
+        "zh": "通过 ISP 模块控制寄存器（bit4）使能/禁用缺陷像素校正。"
+      },
+      "group": "isp_processing",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0C00",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "enable",
+          "label": {
+            "en": "Enable",
+            "zh": "使能"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Disable",
+                "zh": "禁用"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Enable",
+                "zh": "启用"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "DPC enable",
+            "zh": "DPC 使能"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0C00",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0C00",
+          "reg_type": 0,
+          "value_expr": "{read0} | 0x10"
+        },
+        {
+          "op": "write",
+          "reg": "0x0C00",
+          "reg_type": 0,
+          "value_expr": "{read0} & ~0x10"
+        }
+      ]
+    },
+    {
+      "id": "blcmode",
+      "name": {
+        "en": "BLC Mode",
+        "zh": "BLC 模式"
+      },
+      "description": {
+        "en": "Set/get black level calibration mode. 0=Auto calibration, 1=Manual black level.",
+        "zh": "设置/获取黑电平校准模式。0=自动校准, 1=手动黑电平。"
+      },
+      "group": "isp_processing",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0834",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "mode",
+          "label": {
+            "en": "Mode",
+            "zh": "模式"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Auto calibration",
+                "zh": "自动校准"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Manual",
+                "zh": "手动"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "BLC mode",
+            "zh": "BLC 模式"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0834",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0834",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "blacklevel",
+      "name": {
+        "en": "Black Level",
+        "zh": "黑电平"
+      },
+      "description": {
+        "en": "Set/get black level value.",
+        "zh": "设置/获取黑电平值。"
+      },
+      "group": "isp_processing",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0830",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "level",
+          "label": {
+            "en": "Level",
+            "zh": "电平"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 65535,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Black level value",
+            "zh": "黑电平值"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0830",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0830",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "trgmode",
+      "name": {
+        "en": "Trigger Mode",
+        "zh": "触发模式"
+      },
+      "description": {
+        "en": "Set/get trigger mode. 0=Video streaming, 1=Normal trigger, 2=Rolling shutter multi-frame, 3=Pulse trigger.",
+        "zh": "设置/获取触发模式。0=视频流, 1=普通触发, 2=卷帘多帧触发, 3=脉冲触发。"
+      },
+      "group": "trigger_sync",
+      "mode": "rw",
+      "risk_level": "medium",
+      "register": {
+        "address": "0x0404",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "mode",
+          "label": {
+            "en": "Mode",
+            "zh": "模式"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Video Streaming",
+                "zh": "视频流"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Normal Trigger",
+                "zh": "普通触发"
+              }
+            },
+            {
+              "value": 2,
+              "label": {
+                "en": "Rolling Shutter Multi-frame",
+                "zh": "卷帘多帧"
+              }
+            },
+            {
+              "value": 3,
+              "label": {
+                "en": "Pulse Trigger",
+                "zh": "脉冲触发"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "Trigger mode",
+            "zh": "触发模式"
+          },
+          "capability_filter": {
+            "command_id": "trgmodecap",
+            "bit_mapping": {
+              "0": 0,
+              "1": 1,
+              "2": 2,
+              "3": 3
+            }
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "S",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0404",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0404",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "trgsrc",
+      "name": {
+        "en": "Trigger Source",
+        "zh": "触发源"
+      },
+      "description": {
+        "en": "Set/get trigger source. 0=Software, 1=Hardware.",
+        "zh": "设置/获取触发源。0=软触发, 1=硬触发。"
+      },
+      "group": "trigger_sync",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0408",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "source",
+          "label": {
+            "en": "Source",
+            "zh": "触发源"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Software",
+                "zh": "软触发"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Hardware",
+                "zh": "硬触发"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "Trigger source",
+            "zh": "触发源"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0408",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0408",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "trgnum",
+      "name": {
+        "en": "Trigger Number",
+        "zh": "触发帧数"
+      },
+      "description": {
+        "en": "Set/get number of trigger frames per trigger event. Range [1, 255].",
+        "zh": "设置/获取每次触发的帧数。范围 [1, 255]。"
+      },
+      "group": "trigger_sync",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x040C",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "number",
+          "label": {
+            "en": "Number",
+            "zh": "帧数"
+          },
+          "type": "integer",
+          "min": 1,
+          "max": 255,
+          "step": 1,
+          "default": 1,
+          "required": true,
+          "description": {
+            "en": "Trigger frame count",
+            "zh": "触发帧数"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x040C",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x040C",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "trginterval",
+      "name": {
+        "en": "Trigger Interval",
+        "zh": "触发间隔"
+      },
+      "description": {
+        "en": "Set/get trigger interval in microseconds. Range [0, 0x00FFFFFF].",
+        "zh": "设置/获取触发间隔（微秒）。范围 [0, 0x00FFFFFF]。"
+      },
+      "group": "trigger_sync",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0410",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "interval",
+          "label": {
+            "en": "Interval",
+            "zh": "间隔"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 16777215,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Trigger interval",
+            "zh": "触发间隔"
+          },
+          "unit": "μs"
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0410",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0410",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "trgone",
+      "name": {
+        "en": "Software Trigger",
+        "zh": "软件触发"
+      },
+      "description": {
+        "en": "Write 1 to trigger one frame capture.",
+        "zh": "写 1 触发一帧采集。"
+      },
+      "group": "trigger_sync",
+      "mode": "write",
+      "risk_level": "medium",
+      "register": {
+        "address": "0x0414",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "S",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "write",
+          "reg": "0x0414",
+          "reg_type": 0,
+          "value_expr": "1"
+        }
+      ]
+    },
+    {
+      "id": "trgcount",
+      "name": {
+        "en": "Trigger Count",
+        "zh": "触发计数"
+      },
+      "description": {
+        "en": "Read trigger statistics (high 16 bits=lost, low 16 bits=count). Write 1 to clear.",
+        "zh": "读取触发统计（高16位=丢失，低16位=计数）。写 1 清除。"
+      },
+      "group": "trigger_sync",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0418",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "clear",
+          "label": {
+            "en": "Clear",
+            "zh": "清除"
+          },
+          "type": "integer",
+          "min": 1,
+          "max": 1,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Write 1 to clear",
+            "zh": "写 1 清除"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "S",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0418",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0418",
+          "reg_type": 0,
+          "value_expr": "1"
+        }
+      ]
+    },
+    {
+      "id": "trgedge",
+      "name": {
+        "en": "Trigger Edge",
+        "zh": "触发边沿"
+      },
+      "description": {
+        "en": "Set/get trigger edge polarity. 0=Rising, 1=Falling.",
+        "zh": "设置/获取触发边沿极性。0=上升沿, 1=下降沿。"
+      },
+      "group": "trigger_sync",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x1004",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "edge",
+          "label": {
+            "en": "Edge",
+            "zh": "边沿"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Rising",
+                "zh": "上升沿"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Falling",
+                "zh": "下降沿"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "Trigger edge",
+            "zh": "触发边沿"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "S",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x1004",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x1004",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "trgdelay",
+      "name": {
+        "en": "Trigger Delay",
+        "zh": "触发延迟"
+      },
+      "description": {
+        "en": "Set/get trigger delay in microseconds. Range [0, 1000000].",
+        "zh": "设置/获取触发延迟（微秒）。范围 [0, 1000000]。"
+      },
+      "group": "trigger_sync",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x1000",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "delay",
+          "label": {
+            "en": "Delay",
+            "zh": "延迟"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 1000000,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Trigger delay",
+            "zh": "触发延迟"
+          },
+          "unit": "μs"
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "S",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x1000",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x1000",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "trgfilter_enable",
+      "name": {
+        "en": "Trigger Filter Enable",
+        "zh": "触发滤波使能"
+      },
+      "description": {
+        "en": "Set/get trigger filter enable. 0=No filter, 1=Low-level filter, 2=High-level filter, 3=Both.",
+        "zh": "设置/获取触发滤波使能。0=无滤波, 1=低电平滤波, 2=高电平滤波, 3=双向滤波。"
+      },
+      "group": "trigger_sync",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x1008",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "filter",
+          "label": {
+            "en": "Filter",
+            "zh": "滤波"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "No filtering",
+                "zh": "无滤波"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Low-level filter",
+                "zh": "低电平滤波"
+              }
+            },
+            {
+              "value": 2,
+              "label": {
+                "en": "High-level filter",
+                "zh": "高电平滤波"
+              }
+            },
+            {
+              "value": 3,
+              "label": {
+                "en": "Both",
+                "zh": "双向滤波"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "Trigger filter mode",
+            "zh": "触发滤波模式"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "S",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x1008",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x1008",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "trgfilter_time",
+      "name": {
+        "en": "Trigger Filter Width",
+        "zh": "触发滤波宽度"
+      },
+      "description": {
+        "en": "Set/get trigger filter window width in microseconds. Range [1, 1000000].",
+        "zh": "设置/获取触发滤波窗口宽度（微秒）。范围 [1, 1000000]。"
+      },
+      "group": "trigger_sync",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x100C",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "width",
+          "label": {
+            "en": "Width",
+            "zh": "宽度"
+          },
+          "type": "integer",
+          "min": 1,
+          "max": 1000000,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Filter window width",
+            "zh": "滤波窗口宽度"
+          },
+          "unit": "μs"
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "S",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x100C",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x100C",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "trgexp_delay",
+      "name": {
+        "en": "Exposure Delay",
+        "zh": "曝光延迟"
+      },
+      "description": {
+        "en": "Set/get exposure delay (strobe advance time) in microseconds. Range [0, 1000000].",
+        "zh": "设置/获取曝光延迟（闪光灯提前时间）（微秒）。范围 [0, 1000000]。"
+      },
+      "group": "trigger_sync",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x1010",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "delay",
+          "label": {
+            "en": "Delay",
+            "zh": "延迟"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 1000000,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Exposure delay",
+            "zh": "曝光延迟"
+          },
+          "unit": "μs"
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "S",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x1010",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x1010",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "slavemode",
+      "name": {
+        "en": "Slave Mode",
+        "zh": "从模式"
+      },
+      "description": {
+        "en": "Set/get master/slave role in multi-camera sync mode. 0=Master, 1=Slave.",
+        "zh": "设置/获取多机同步模式下的主从角色。0=主机, 1=从机。"
+      },
+      "group": "trigger_sync",
+      "mode": "rw",
+      "risk_level": "medium",
+      "register": {
+        "address": "0x0460",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "role",
+          "label": {
+            "en": "Role",
+            "zh": "角色"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Master",
+                "zh": "主机"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Slave",
+                "zh": "从机"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "Master/Slave role",
+            "zh": "主从角色"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "S",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0460",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0460",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "gpios_status",
+      "name": {
+        "en": "GPIO Status",
+        "zh": "GPIO 状态"
+      },
+      "description": {
+        "en": "Read GPIO pin status. bit0=TriggerIN, bit1=OUT_IO1, bit2=OUT_IO2.",
+        "zh": "读取 GPIO 引脚状态。bit0=TriggerIN, bit1=OUT_IO1, bit2=OUT_IO2。"
+      },
+      "group": "gpio_control",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x1014",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x1014",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "outio1_mode",
+      "name": {
+        "en": "GPIO1 Output Mode",
+        "zh": "GPIO1 输出模式"
+      },
+      "description": {
+        "en": "Set/get GPIO1 output select. 0=Strobe, 1=UserOut.",
+        "zh": "设置/获取 GPIO1 输出选择。0=Strobe, 1=UserOut。"
+      },
+      "group": "gpio_control",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x1020",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "mode",
+          "label": {
+            "en": "Mode",
+            "zh": "模式"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Strobe",
+                "zh": "Strobe"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "UserOut",
+                "zh": "UserOut"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "GPIO1 output mode",
+            "zh": "GPIO1 输出模式"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x1020",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x1020",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "outio1_usr",
+      "name": {
+        "en": "GPIO1 User Output",
+        "zh": "GPIO1 用户输出"
+      },
+      "description": {
+        "en": "Set/get GPIO1 user-defined output value.",
+        "zh": "设置/获取 GPIO1 用户定义输出值。"
+      },
+      "group": "gpio_control",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x1024",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "value",
+          "label": {
+            "en": "Value",
+            "zh": "值"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 1,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "User output value",
+            "zh": "用户输出值"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x1024",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x1024",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "outio1_rvs",
+      "name": {
+        "en": "GPIO1 Reverse",
+        "zh": "GPIO1 反转"
+      },
+      "description": {
+        "en": "Set/get GPIO1 signal reversal.",
+        "zh": "设置/获取 GPIO1 信号反转。"
+      },
+      "group": "gpio_control",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x1028",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "reverse",
+          "label": {
+            "en": "Reverse",
+            "zh": "反转"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 1,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Signal reverse",
+            "zh": "信号反转"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x1028",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x1028",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "outio2_mode",
+      "name": {
+        "en": "GPIO2 Output Mode",
+        "zh": "GPIO2 输出模式"
+      },
+      "description": {
+        "en": "Set/get GPIO2 output select. 0=Strobe, 1=UserOut, 2=TriggerWait, 3=XVS, 4=XHS.",
+        "zh": "设置/获取 GPIO2 输出选择。0=Strobe, 1=UserOut, 2=TriggerWait, 3=XVS, 4=XHS。"
+      },
+      "group": "gpio_control",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x1030",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "mode",
+          "label": {
+            "en": "Mode",
+            "zh": "模式"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Strobe",
+                "zh": "Strobe"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "UserOut",
+                "zh": "UserOut"
+              }
+            },
+            {
+              "value": 2,
+              "label": {
+                "en": "TriggerWait",
+                "zh": "TriggerWait"
+              }
+            },
+            {
+              "value": 3,
+              "label": "XVS"
+            },
+            {
+              "value": 4,
+              "label": "XHS"
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "GPIO2 output mode",
+            "zh": "GPIO2 输出模式"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x1030",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x1030",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "outio2_usr",
+      "name": {
+        "en": "GPIO2 User Output",
+        "zh": "GPIO2 用户输出"
+      },
+      "description": {
+        "en": "Set/get GPIO2 user-defined output value.",
+        "zh": "设置/获取 GPIO2 用户定义输出值。"
+      },
+      "group": "gpio_control",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x1034",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "value",
+          "label": {
+            "en": "Value",
+            "zh": "值"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 1,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "User output value",
+            "zh": "用户输出值"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x1034",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x1034",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "outio2_rvs",
+      "name": {
+        "en": "GPIO2 Reverse",
+        "zh": "GPIO2 反转"
+      },
+      "description": {
+        "en": "Set/get GPIO2 signal reversal.",
+        "zh": "设置/获取 GPIO2 信号反转。"
+      },
+      "group": "gpio_control",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x1038",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "reverse",
+          "label": {
+            "en": "Reverse",
+            "zh": "反转"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 1,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Signal reverse",
+            "zh": "信号反转"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x1038",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x1038",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "testimg",
+      "name": {
+        "en": "Test Image",
+        "zh": "测试图像"
+      },
+      "description": {
+        "en": "Set/get test image selector. 0=Off, 1=Test pattern 1, 2=Test pattern 2.",
+        "zh": "设置/获取测试图像选择。0=关闭, 1=测试图1, 2=测试图2。"
+      },
+      "group": "video_format",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0800",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "selector",
+          "label": {
+            "en": "Selector",
+            "zh": "选择"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 2,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Test image selector",
+            "zh": "测试图像选择"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0800",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0800",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "pixelformat",
+      "name": {
+        "en": "Pixel Format",
+        "zh": "像素格式"
+      },
+      "description": {
+        "en": "Set/get pixel format. 0=Mono8, 1=Mono10, 2=Mono12, 3=Mono14, 4=UYVY.",
+        "zh": "设置/获取像素格式。0=Mono8, 1=Mono10, 2=Mono12, 3=Mono14, 4=UYVY。"
+      },
+      "group": "video_format",
+      "mode": "rw",
+      "risk_level": "medium",
+      "register": {
+        "address": "0x0804",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "format",
+          "label": {
+            "en": "Format",
+            "zh": "格式"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": "Mono8"
+            },
+            {
+              "value": 1,
+              "label": "Mono10"
+            },
+            {
+              "value": 2,
+              "label": "Mono12"
+            },
+            {
+              "value": 3,
+              "label": "Mono14"
+            },
+            {
+              "value": 4,
+              "label": "UYVY"
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "Pixel format",
+            "zh": "像素格式"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "S",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0804",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0804",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "imgdir",
+      "name": {
+        "en": "Image Direction",
+        "zh": "图像方向"
+      },
+      "description": {
+        "en": "Set/get image orientation. 0=Normal, 1=Mirror, 2=Flip, 3=Flip+Mirror.",
+        "zh": "设置/获取图像方向。0=正常, 1=镜像, 2=翻转, 3=翻转+镜像。"
+      },
+      "group": "video_format",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0828",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "direction",
+          "label": {
+            "en": "Direction",
+            "zh": "方向"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Normal",
+                "zh": "正常"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Mirror",
+                "zh": "镜像"
+              }
+            },
+            {
+              "value": 2,
+              "label": {
+                "en": "Flip",
+                "zh": "翻转"
+              }
+            },
+            {
+              "value": 3,
+              "label": {
+                "en": "Flip+Mirror",
+                "zh": "翻转+镜像"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "Image direction",
+            "zh": "图像方向"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0828",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0828",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "nondiscontinuousmode",
+      "name": {
+        "en": "MIPI Clock Mode",
+        "zh": "MIPI 时钟模式"
+      },
+      "description": {
+        "en": "Read MIPI clock mode. 0=Discontinuous, 1=Continuous.",
+        "zh": "读取 MIPI 时钟模式。0=非连续, 1=连续。"
+      },
+      "group": "video_format",
+      "mode": "read",
+      "risk_level": "none",
+      "register": {
+        "address": "0x044C",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x044C",
+          "reg_type": 0
+        }
+      ]
+    },
+    {
+      "id": "osdmode",
+      "name": {
+        "en": "OSD Mode",
+        "zh": "OSD 模式"
+      },
+      "description": {
+        "en": "Set/get OSD mode. bit0=Disabled, bit1=Crosshair enabled.",
+        "zh": "设置/获取 OSD 模式。bit0=禁用, bit1=十字线使能。"
+      },
+      "group": "video_format",
+      "mode": "rw",
+      "risk_level": "low",
+      "register": {
+        "address": "0x0854",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "mode",
+          "label": {
+            "en": "Mode",
+            "zh": "模式"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 1,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "OSD mode",
+            "zh": "OSD 模式"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0854",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0854",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "imgacq",
+      "name": {
+        "en": "Image Acquisition",
+        "zh": "图像采集"
+      },
+      "description": {
+        "en": "Start/stop image acquisition. 0=Stop, 1=Start.",
+        "zh": "启动/停止图像采集。0=停止, 1=启动。"
+      },
+      "group": "system_control",
+      "mode": "write",
+      "risk_level": "medium",
+      "register": {
+        "address": "0x0400",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "acquisition",
+          "label": {
+            "en": "Acquisition",
+            "zh": "采集"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Stop",
+                "zh": "停止"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Start",
+                "zh": "启动"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "Image acquisition",
+            "zh": "图像采集"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "write",
+          "reg": "0x0400",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "factoryparam",
+      "name": {
+        "en": "Factory Reset",
+        "zh": "恢复出厂设置"
+      },
+      "description": {
+        "en": "Restore all parameters to factory defaults. WARNING: Do not interrupt power.",
+        "zh": "恢复所有参数为出厂默认值。警告：请勿断电。"
+      },
+      "group": "system_control",
+      "mode": "write",
+      "risk_level": "high",
+      "register": {
+        "address": "0x0014",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": true,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "write",
+          "reg": "0x0014",
+          "reg_type": 0,
+          "value_expr": "1"
+        }
+      ]
+    },
+    {
+      "id": "paramsave",
+      "name": {
+        "en": "Save to Flash",
+        "zh": "保存到 Flash"
+      },
+      "description": {
+        "en": "Save all parameters to flash (non-volatile). WARNING: Do not interrupt power.",
+        "zh": "将所有参数保存到 Flash（非易失）。警告：请勿断电。"
+      },
+      "group": "system_control",
+      "mode": "write",
+      "risk_level": "high",
+      "register": {
+        "address": "0x0018",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": true,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "write",
+          "reg": "0x0018",
+          "reg_type": 0,
+          "value_expr": "1"
+        }
+      ]
+    },
+    {
+      "id": "reboot",
+      "name": {
+        "en": "Reboot Camera",
+        "zh": "重启相机"
+      },
+      "description": {
+        "en": "Reboot the camera system. WARNING: Unsaved configuration will be lost.",
+        "zh": "重启相机系统。警告：未保存的配置将丢失。"
+      },
+      "group": "system_control",
+      "mode": "write",
+      "risk_level": "high",
+      "register": {
+        "address": "0x001C",
+        "reg_type": "arm"
+      },
+      "parameters": [],
+      "requires_confirmation": true,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "write",
+          "reg": "0x001C",
+          "reg_type": 0,
+          "value_expr": "1"
+        }
+      ]
+    },
+    {
+      "id": "i2caddr",
+      "name": {
+        "en": "I2C Address",
+        "zh": "I2C 地址"
+      },
+      "description": {
+        "en": "Set/get I2C address. Range [0x03, 0x77]. WARNING: Incorrect address causes communication loss.",
+        "zh": "设置/获取 I2C 地址。范围 [0x03, 0x77]。警告：错误地址将导致通信丢失。"
+      },
+      "group": "system_control",
+      "mode": "rw",
+      "risk_level": "high",
+      "register": {
+        "address": "0x041C",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "address",
+          "label": {
+            "en": "Address",
+            "zh": "地址"
+          },
+          "type": "integer",
+          "min": 3,
+          "max": 119,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "I2C address (hex)",
+            "zh": "I2C 地址（十六进制）"
+          }
+        }
+      ],
+      "requires_confirmation": true,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {
+        "en": "Default address is 0x3b.",
+        "zh": "默认地址为 0x3b。"
+      },
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x041C",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x041C",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "mcubypass",
+      "name": {
+        "en": "MCU Bypass Mode",
+        "zh": "MCU 旁路模式"
+      },
+      "description": {
+        "en": "RAW series ONLY! Enable/disable MCU bypass. Once enabled, user controls sensor directly. Auto restart.",
+        "zh": "仅 RAW 系列！使能/禁用 MCU 旁路。使能后用户直接控制传感器。自动重启。"
+      },
+      "group": "system_control",
+      "mode": "rw",
+      "risk_level": "high",
+      "register": {
+        "address": "0x0424",
+        "reg_type": "arm"
+      },
+      "parameters": [
+        {
+          "name": "enable",
+          "label": {
+            "en": "Enable",
+            "zh": "使能"
+          },
+          "type": "enum",
+          "options": [
+            {
+              "value": 0,
+              "label": {
+                "en": "Disable",
+                "zh": "禁用"
+              }
+            },
+            {
+              "value": 1,
+              "label": {
+                "en": "Enable",
+                "zh": "启用"
+              }
+            }
+          ],
+          "required": true,
+          "description": {
+            "en": "MCU bypass",
+            "zh": "MCU 旁路"
+          }
+        }
+      ],
+      "requires_confirmation": true,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "read",
+          "reg": "0x0424",
+          "reg_type": 0
+        },
+        {
+          "op": "write",
+          "reg": "0x0424",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        }
+      ]
+    },
+    {
+      "id": "snsreg",
+      "name": {
+        "en": "Sensor Register Read",
+        "zh": "传感器寄存器读取"
+      },
+      "description": {
+        "en": "Read a raw sensor register via indirect access. Write address to 0x0450, read value from 0x0454.",
+        "zh": "通过间接方式读取传感器原始寄存器。先写地址到 0x0450，再从 0x0454 读取值。"
+      },
+      "group": "advanced",
+      "mode": "read",
+      "risk_level": "medium",
+      "register": null,
+      "parameters": [
+        {
+          "name": "register_address",
+          "label": {
+            "en": "Register Address",
+            "zh": "寄存器地址"
+          },
+          "type": "integer",
+          "min": 0,
+          "max": 65535,
+          "step": 1,
+          "default": null,
+          "required": true,
+          "description": {
+            "en": "Sensor register address (hex)",
+            "zh": "传感器寄存器地址（十六进制）"
+          }
+        }
+      ],
+      "requires_confirmation": false,
+      "update_timing": "A",
+      "platforms": [
+        "jetson",
+        "rpi",
+        "rpi5",
+        "rk3588"
+      ],
+      "wiki_url": "https://wiki.veye.cc/index.php/Gx_Series_MIPI_Camera_Register_Map",
+      "examples": [],
+      "notes": {},
+      "execution_steps": [
+        {
+          "op": "write",
+          "reg": "0x0450",
+          "reg_type": 0,
+          "value_expr": "{param0}"
+        },
+        {
+          "op": "read",
+          "reg": "0x0454",
+          "reg_type": 0
+        }
+      ]
+    }
+  ]
+}

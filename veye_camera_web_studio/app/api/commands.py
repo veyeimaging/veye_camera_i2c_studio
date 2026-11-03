@@ -4,16 +4,14 @@ from pydantic import BaseModel, validator
 from typing import Dict, Any, List, Optional
 import logging
 
-from app.services.command_service import CommandService
+from app.services.command_service import CommandService, VALID_SERIES
 from app.services.documentation_service import DocumentationService
 from app.services.log_service import LogService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["commands"])
 
-# Singleton services
-_command_service = CommandService()
-_doc_service = DocumentationService()
+# Singleton log service (series-independent)
 _log_service = LogService()
 
 
@@ -24,6 +22,7 @@ class ExecuteRequest(BaseModel):
     params: List[Any] = []
     timeout: int = 5
     action: Optional[str] = None  # "read" or "write"; for rw commands
+    series: str = "gx"  # "gx" or "mv"
 
     @validator('i2c_bus')
     def validate_i2c_bus(cls, v):
@@ -52,11 +51,19 @@ class ExecuteRequest(BaseModel):
             raise ValueError('Timeout must be between 1 and 30 seconds')
         return v
 
+    @validator('series')
+    def validate_series(cls, v):
+        """Validate camera series."""
+        if v not in VALID_SERIES:
+            raise ValueError(f'Camera series must be one of {VALID_SERIES}')
+        return v
+
 
 @router.get("/commands/groups")
-def get_command_groups() -> Dict[str, Any]:
-    """Get all command groups."""
-    return _command_service.load_groups()
+def get_command_groups(series: str = Query("gx", regex="^(gx|mv)$")) -> Dict[str, Any]:
+    """Get all command groups for the specified camera series."""
+    service = CommandService(camera_series=series)
+    return service.load_groups()
 
 
 @router.get("/commands")
@@ -64,28 +71,30 @@ def get_commands(
     group: Optional[str] = None,
     search: Optional[str] = None,
     lang: str = Query("en", regex="^(en|zh)$"),
+    series: str = Query("gx", regex="^(gx|mv)$"),
     i2c_bus: Optional[int] = None,
     i2c_addr: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Get commands, optionally filtered by group or search query.
     For video_modes group: pass i2c_bus and i2c_addr to enable capability-based filtering."""
+    service = CommandService(camera_series=series)
     if search:
-        results = _command_service.search_commands(search, lang)
+        results = service.search_commands(search, lang)
         return {"commands": results, "count": len(results)}
     if group:
         # Special handling for video_modes group: detect capability and filter
         if group == "video_modes" and i2c_bus is not None and i2c_addr is not None:
-            cap_mode = _command_service.detect_video_mode_cap(i2c_bus, i2c_addr)
+            cap_mode = service.detect_video_mode_cap(i2c_bus, i2c_addr)
             if cap_mode is not None:
                 preset_count = 0
                 preset_modes = []
                 if cap_mode == 2:
-                    preset_count = _command_service.get_preset_mode_count(i2c_bus, i2c_addr)
+                    preset_count = service.get_preset_mode_count(i2c_bus, i2c_addr)
                     preset_count = max(preset_count, 1)  # at least 1
-                    preset_modes = _command_service.read_preset_mode_data(
+                    preset_modes = service.read_preset_mode_data(
                         i2c_bus, i2c_addr, preset_count
                     )
-                results = _command_service.get_commands_for_video_mode(cap_mode, preset_count)
+                results = service.get_commands_for_video_mode(cap_mode, preset_count)
                 resp: Dict[str, Any] = {
                     "commands": results,
                     "count": len(results),
@@ -101,16 +110,17 @@ def get_commands(
             else:
                 # Capability detection failed, return all video_modes commands
                 logger.warning("Failed to detect VideoModeCap, returning all video_modes commands")
-        results = _command_service.get_commands_by_group(group)
+        results = service.get_commands_by_group(group)
         return {"commands": results, "count": len(results)}
-    data = _command_service.load_commands()
+    data = service.load_commands()
     return {"commands": data.get("commands", []), "count": len(data.get("commands", []))}
 
 
 @router.get("/commands/{command_id}")
-def get_command(command_id: str) -> Dict[str, Any]:
+def get_command(command_id: str, series: str = Query("gx", regex="^(gx|mv)$")) -> Dict[str, Any]:
     """Get a single command definition."""
-    cmd = _command_service.get_command(command_id)
+    service = CommandService(camera_series=series)
+    cmd = service.get_command(command_id)
     if not cmd:
         raise HTTPException(status_code=404, detail=f"Command not found: {command_id}")
     return cmd
@@ -119,24 +129,26 @@ def get_command(command_id: str) -> Dict[str, Any]:
 @router.post("/commands/{command_id}/execute")
 def execute_command(command_id: str, request: ExecuteRequest) -> Dict[str, Any]:
     """Execute a camera command."""
-    command = _command_service.get_command(command_id)
+    service = CommandService(camera_series=request.series)
+    command = service.get_command(command_id)
     if not command:
         raise HTTPException(status_code=404, detail=f"Command not found: {command_id}")
 
     # Check if I2C tools are available
-    if not _command_service.is_tools_available():
+    if not service.is_tools_available():
+        tool_prefix = "i2c_4" if request.series == "mv" else "i2c_v"
         # Return simulated response for demo mode
         result = {
             "success": False,
             "stdout": "",
-            "stderr": "i2c_vread/i2c_vwrite not found in tools/. Running in demo mode.",
+            "stderr": f"{tool_prefix}read/{tool_prefix}write not found in tools/. Running in demo mode.",
             "returncode": -1,
             "duration_ms": 0,
             "demo_mode": True,
-            "command": f"(simulated) i2c_v{'read' if command['mode'] in ('read','rw') else 'write'} {command_id}",
+            "command": f"(simulated) {tool_prefix}{'read' if command['mode'] in ('read','rw') else 'write'} {command_id}",
         }
     else:
-        result = _command_service.execute_command(
+        result = service.execute_command(
             command_id=command_id,
             i2c_bus=request.i2c_bus,
             i2c_addr=request.i2c_addr,
@@ -159,18 +171,20 @@ def execute_command(command_id: str, request: ExecuteRequest) -> Dict[str, Any]:
 
 
 @router.get("/docs/{command_id}")
-def get_command_docs(command_id: str) -> Dict[str, Any]:
+def get_command_docs(command_id: str, series: str = Query("gx", regex="^(gx|mv)$")) -> Dict[str, Any]:
     """Get full documentation for a command (merged with register map)."""
-    doc = _doc_service.get_full_documentation(command_id)
+    doc_service = DocumentationService(camera_series=series)
+    doc = doc_service.get_full_documentation(command_id)
     if "error" in doc:
         raise HTTPException(status_code=404, detail=doc["error"])
     return doc
 
 
 @router.get("/docs")
-def get_all_registers() -> Dict[str, Any]:
+def get_all_registers(series: str = Query("gx", regex="^(gx|mv)$")) -> Dict[str, Any]:
     """Get the complete register map."""
-    registers = _doc_service.get_all_registers()
+    doc_service = DocumentationService(camera_series=series)
+    registers = doc_service.get_all_registers()
     return {"registers": registers, "count": len(registers)}
 
 

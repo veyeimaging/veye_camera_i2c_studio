@@ -135,6 +135,24 @@
         "raw_support": "S"
     },
     {
+        "address": "0x006C",
+        "name": "Min Trigger cycle",
+        "description": "Minimum trigger signal period, in microseconds (µs), with 0 indicating an invalid value.\nIn pulse trigger mode, it represents the minimum interval between the end of the previous trigger level and the next trigger signal.",
+        "data_type": "uint",
+        "rd_wt": "RO",
+        "update_timing": "A",
+        "raw_support": "S"
+    },
+    {
+        "address": "0x0070",
+        "name": "Max Trigger cycle",
+        "description": "Maximum trigger signal period, in microseconds (µs), with 0 indicating an invalid value. (Valid in continuous trigger mode of SC535).",
+        "data_type": "uint",
+        "rd_wt": "RO",
+        "update_timing": "A",
+        "raw_support": "S"
+    },
+    {
         "address": "0x0400",
         "name": "Image Acquisition",
         "description": "Start/Stop acquisition\nThere is no image output after the camera is powered on, which means it is in the standby state.\nAfter writing 1 to this register, it enters the running state and starts outputting images or waiting for the trigger signal.",
@@ -268,24 +286,6 @@
         "rd_wt": "RO",
         "update_timing": "A",
         "raw_support": "N"
-    },
-    {
-        "address": "0x006C",
-        "name": "Min Trigger cycle",
-        "description": "Minimum trigger signal period, in microseconds (µs), with 0 indicating an invalid value.\nIn pulse trigger mode, it represents the minimum interval between the end of the previous trigger level and the next trigger signal.",
-        "data_type": "uint",
-        "rd_wt": "RO",
-        "update_timing": "A",
-        "raw_support": "S"
-    },
-    {
-        "address": "0x0070",
-        "name": "Max Trigger cycle",
-        "description": "Maximum trigger signal period, in microseconds (µs), with 0 indicating an invalid value. (Valid in continuous trigger mode of SC535).",
-        "data_type": "uint",
-        "rd_wt": "RO",
-        "update_timing": "A",
-        "raw_support": "S"
     },
     {
         "address": "0x0800",

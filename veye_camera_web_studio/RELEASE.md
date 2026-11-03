@@ -1,5 +1,36 @@
 # Release Log
 
+## v0.2.0 (2026-11-03)
+
+### New Features
+- **MV/RAW Series Support**: Full web register access for MV and RAW series cameras
+  - 88 MV series registers with 76 commands across 11 groups
+  - Auto-detection of camera series (GX vs MV/RAW) from sysfs
+  - Series-specific command groups and register maps
+
+- **Trigger Mode Capability Filtering**: Dynamic dropdown filtering based on hardware capabilities
+  - Options filtered by `trgmodecap` (0x0030) register bits
+  - Supports bit-mapped capability checking
+
+- **Enhanced Result Display**: Special formatting for specific commands
+  - Exposure Time Range: max/min with unit conversion
+  - Sensor Register Read: ready bit verification and value masking
+  - Temperature: Kelvin and Celsius display
+  - Full bilingual support (English/Chinese)
+
+### Changes
+- L version displays in hex format (e.g., "F3.20")
+- BLC Mode and Black Level moved to ISP Processing group
+- Exposure Time Range moved to Exposure & Gain group
+- ROI Configuration placed above Frame Rate
+- Command generation refactored for multi-series support
+
+### Files Added
+- `config/mv_commands.json`, `config/mv_command_groups.json`
+- `config/gx_commands.json`, `config/gx_command_groups.json`
+
+---
+
 ## v0.1.1 (2026-10-28)
 
 ### New Features

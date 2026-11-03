@@ -1,4 +1,4 @@
-"""Command execution service - directly calls i2c_vread / i2c_vwrite."""
+"""Command execution service - directly calls i2c tools for GX and MV/RAW series."""
 import subprocess
 import os
 import json
@@ -15,33 +15,55 @@ logger = logging.getLogger(__name__)
 _BASE = os.path.join(os.path.dirname(__file__), "..", "..")
 _CONFIG_DIR = os.path.join(_BASE, "config")
 _TOOLS_DIR = os.path.join(_BASE, "tools")
-_I2C_VREAD = os.path.join(_TOOLS_DIR, "i2c_vread")
-_I2C_VWRITE = os.path.join(_TOOLS_DIR, "i2c_vwrite")
+
+# GX series I2C tools (variable-length protocol with reg_type)
+_GX_I2C_READ = os.path.join(_TOOLS_DIR, "i2c_vread")
+_GX_I2C_WRITE = os.path.join(_TOOLS_DIR, "i2c_vwrite")
+
+# MV/RAW series I2C tools (simple 4-byte protocol)
+_MV_I2C_READ = os.path.join(_TOOLS_DIR, "i2c_4read")
+_MV_I2C_WRITE = os.path.join(_TOOLS_DIR, "i2c_4write")
+
+# Supported camera series
+VALID_SERIES = ("gx", "mv")
 
 # Mutex – only one I2C transaction at a time
 _i2c_lock = threading.Lock()
 
 
 class CommandService:
-    """Executes VEYE camera I2C commands by calling i2c_vread / i2c_vwrite
-    directly (no shell wrapper needed)."""
+    """Executes VEYE camera I2C commands by calling i2c tools directly.
 
-    def __init__(self):
+    Supports two camera series:
+    - GX: uses i2c_vread / i2c_vwrite (variable-length protocol with reg_type)
+    - MV/RAW: uses i2c_4read / i2c_4write (simple 4-byte protocol)
+    """
+
+    def __init__(self, camera_series: str = "gx"):
+        if camera_series not in VALID_SERIES:
+            raise ValueError(f"Invalid camera series: {camera_series}. Must be one of {VALID_SERIES}")
+        self.camera_series = camera_series
         self._commands_cache: Optional[Dict] = None
         self._groups_cache: Optional[Dict] = None
 
     # ------------------------------------------------------------------
     # Configuration loaders
     # ------------------------------------------------------------------
+    def _config_filename(self, base_name: str) -> str:
+        """Return the series-prefixed config filename."""
+        return f"{self.camera_series}_{base_name}.json"
+
     def load_commands(self) -> Dict[str, Any]:
         if self._commands_cache is None:
-            with open(os.path.join(_CONFIG_DIR, "commands.json"), "r", encoding="utf-8") as f:
+            path = os.path.join(_CONFIG_DIR, self._config_filename("commands"))
+            with open(path, "r", encoding="utf-8") as f:
                 self._commands_cache = json.load(f)
         return self._commands_cache
 
     def load_groups(self) -> Dict[str, Any]:
         if self._groups_cache is None:
-            with open(os.path.join(_CONFIG_DIR, "command_groups.json"), "r", encoding="utf-8") as f:
+            path = os.path.join(_CONFIG_DIR, self._config_filename("command_groups"))
+            with open(path, "r", encoding="utf-8") as f:
                 self._groups_cache = json.load(f)
         return self._groups_cache
 
@@ -55,12 +77,21 @@ class CommandService:
         return [c for c in self.load_commands().get("commands", []) if c.get("group") == group_id]
 
     # ------------------------------------------------------------------
+    # I2C tool path helpers
+    # ------------------------------------------------------------------
+    def _get_read_tool(self) -> str:
+        return _MV_I2C_READ if self.camera_series == "mv" else _GX_I2C_READ
+
+    def _get_write_tool(self) -> str:
+        return _MV_I2C_WRITE if self.camera_series == "mv" else _GX_I2C_WRITE
+
+    # ------------------------------------------------------------------
     # Video mode capability detection & filtering
     # ------------------------------------------------------------------
     def detect_video_mode_cap(self, i2c_bus: int, i2c_addr: str) -> Optional[int]:
         """Read register 0x005C (VideoModeCap).
         Returns 1=ROI mode, 2=Preset mode, or None on failure."""
-        r = self._run_i2c_vread(i2c_bus, i2c_addr, "0x005C", 0, 3)
+        r = self._run_i2c_read(i2c_bus, i2c_addr, "0x005C", 0, 3)
         if r["ok"]:
             try:
                 val = int(r["raw"])
@@ -75,7 +106,7 @@ class CommandService:
 
     def get_preset_mode_count(self, i2c_bus: int, i2c_addr: str) -> int:
         """Read register 0x0060 (VideoModeNum). Returns number of supported preset modes (0-8)."""
-        r = self._run_i2c_vread(i2c_bus, i2c_addr, "0x0060", 0, 3)
+        r = self._run_i2c_read(i2c_bus, i2c_addr, "0x0060", 0, 3)
         if r["ok"]:
             try:
                 val = int(r["raw"])
@@ -133,8 +164,8 @@ class CommandService:
             wh_reg = 0x0064 + (i - 1) * 8
             param_reg = 0x0068 + (i - 1) * 8
 
-            wh_r = self._run_i2c_vread(i2c_bus, i2c_addr, f"0x{wh_reg:04X}", 0, 3)
-            param_r = self._run_i2c_vread(i2c_bus, i2c_addr, f"0x{param_reg:04X}", 0, 3)
+            wh_r = self._run_i2c_read(i2c_bus, i2c_addr, f"0x{wh_reg:04X}", 0, 3)
+            param_r = self._run_i2c_read(i2c_bus, i2c_addr, f"0x{param_reg:04X}", 0, 3)
 
             width = height = fps = read_mode_val = 0
             if wh_r["ok"]:
@@ -208,38 +239,59 @@ class CommandService:
         return None
 
     # ------------------------------------------------------------------
-    # Low-level I2C helpers
+    # Low-level I2C helpers (series-aware)
     # ------------------------------------------------------------------
-    @staticmethod
-    def _run_i2c_vread(bus: int, addr: str, reg: str, reg_type: int, timeout: int) -> Dict:
-        """Call i2c_vread <bus> <addr> <reg> <reg_type> and return parsed result."""
+    def _run_i2c_read(self, bus: int, addr: str, reg: str, reg_type: int, timeout: int) -> Dict:
+        """Call the appropriate i2c read tool and return parsed result.
+
+        GX: i2c_vread <bus> <addr> <reg> <reg_type>
+        MV: i2c_4read <bus> <addr> <reg>
+        """
         import time
         # Small delay to ensure I2C bus is ready (especially after switching registers)
         time.sleep(0.05)  # 50ms
-        
-        cmd = [_I2C_VREAD, str(bus), addr, str(reg), str(reg_type)]
-        logger.debug("i2c_vread: %s", " ".join(cmd))
+
+        tool = self._get_read_tool()
+        if self.camera_series == "mv":
+            cmd = [tool, str(bus), addr, str(reg)]
+        else:
+            cmd = [tool, str(bus), addr, str(reg), str(reg_type)]
+
+        tool_name = os.path.basename(tool)
+        logger.debug("%s: %s", tool_name, " ".join(cmd))
         try:
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=_TOOLS_DIR)
             raw = r.stdout.strip().split("\n")[-1] if r.stdout.strip() else ""
-            logger.info(f"i2c_vread reg={reg} raw={raw} stderr={r.stderr.strip()}")
-            return {"ok": r.returncode == 0, "raw": raw, "stderr": r.stderr.strip()}
+            logger.info(f"{tool_name} reg={reg} raw={raw} stderr={r.stderr.strip()}")
+            # MV tools (i2c_4read) return the register value as the process exit
+            # code, so a non-zero returncode does NOT mean failure.  For MV we
+            # consider the read successful as long as stdout is non-empty.
+            if self.camera_series == "mv":
+                ok = bool(raw) and raw.lstrip("-").isdigit()
+            else:
+                ok = r.returncode == 0
+            return {"ok": ok, "raw": raw, "stderr": r.stderr.strip()}
         except subprocess.TimeoutExpired:
-            return {"ok": False, "raw": "", "stderr": f"i2c_vread timed out ({timeout}s)"}
+            return {"ok": False, "raw": "", "stderr": f"{tool_name} timed out ({timeout}s)"}
         except Exception as e:
             return {"ok": False, "raw": "", "stderr": str(e)}
 
-    @staticmethod
-    def _run_i2c_vwrite(bus: int, addr: str, reg: str, value: int, timeout: int) -> Dict:
-        """Call i2c_vwrite <bus> <addr> <reg> <value> and return result."""
-        cmd = [_I2C_VWRITE, str(bus), addr, str(reg), str(value)]
-        logger.debug("i2c_vwrite: %s", " ".join(cmd))
+    def _run_i2c_write(self, bus: int, addr: str, reg: str, value: int, timeout: int) -> Dict:
+        """Call the appropriate i2c write tool and return result.
+
+        Both GX and MV use the same argument format:
+        <tool> <bus> <addr> <reg> <value>
+        """
+        tool = self._get_write_tool()
+        cmd = [tool, str(bus), addr, str(reg), str(value)]
+        tool_name = os.path.basename(tool)
+        logger.debug("%s: %s", tool_name, " ".join(cmd))
         try:
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=_TOOLS_DIR)
             raw = r.stdout.strip()
             return {"ok": r.returncode == 0, "raw": raw, "stderr": r.stderr.strip()}
         except subprocess.TimeoutExpired:
-            return {"ok": False, "raw": "", "stderr": f"i2c_vwrite timed out ({timeout}s)"}
+            return {"ok": False, "raw": "", "stderr": f"{tool_name} timed out ({timeout}s)"}
         except Exception as e:
             return {"ok": False, "raw": "", "stderr": str(e)}
 
@@ -257,6 +309,10 @@ class CommandService:
         ast.Pow: operator.pow,
         ast.USub: operator.neg,
         ast.UAdd: operator.pos,
+        ast.BitOr: operator.or_,
+        ast.BitAnd: operator.and_,
+        ast.BitXor: operator.xor,
+        ast.Invert: operator.invert,
     }
 
     @classmethod
@@ -327,8 +383,8 @@ class CommandService:
         timeout: int = 5,
         action: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Execute a command by running its execution_steps against i2c_vread/vwrite."""
-        logger.info(f"execute_command: command_id={command_id} i2c_bus={i2c_bus} i2c_addr={i2c_addr} params={params}")
+        """Execute a command by running its execution_steps against i2c tools."""
+        logger.info(f"execute_command: series={self.camera_series} command_id={command_id} i2c_bus={i2c_bus} i2c_addr={i2c_addr} params={params}")
         command = self.get_command(command_id)
         if not command:
             return self._err(f"Unknown command: {command_id}")
@@ -339,11 +395,11 @@ class CommandService:
             return self._err(f"Command '{command_id}' has no execution_steps")
 
         # For RW commands: decide read vs write based on explicit action or params presence.
-        # For read-only commands: only run read steps.
+        # For read-only commands: run all steps (includes write setup for indirect access like MV snsreg).
         # For write-only commands: only run write steps.
         mode = command["mode"]
         if mode == "read":
-            steps = [s for s in steps if s["op"] == "read"]
+            pass  # Keep all steps (some commands need write setup before read, e.g. MV snsreg)
         elif mode == "write":
             steps = [s for s in steps if s["op"] == "write"]
         elif mode == "rw":
@@ -384,10 +440,10 @@ class CommandService:
                     reg = str(self._eval_expr(reg, params, read_values))
 
                 if op == "read":
-                    r = self._run_i2c_vread(i2c_bus, i2c_addr, reg, reg_type, timeout)
+                    r = self._run_i2c_read(i2c_bus, i2c_addr, reg, reg_type, timeout)
                     if r["ok"]:
                         try:
-                            # i2c_vread outputs signed int (%d), convert to unsigned 32-bit
+                            # i2c read tools output signed int (%d), convert to unsigned 32-bit
                             val = int(r["raw"]) & 0xFFFFFFFF
                         except ValueError:
                             val = 0
@@ -401,7 +457,7 @@ class CommandService:
                     val_expr = step.get("value_expr", "0")
                     value = self._eval_expr(val_expr, params, read_values)
                     value = int(value) if not isinstance(value, int) else value
-                    r = self._run_i2c_vwrite(i2c_bus, i2c_addr, reg, value, timeout)
+                    r = self._run_i2c_write(i2c_bus, i2c_addr, reg, value, timeout)
                     if r["ok"]:
                         output_lines.append(f"Write [{reg}] = {value}  OK")
                     else:
@@ -409,6 +465,7 @@ class CommandService:
                         output_lines.append(f"Write [{reg}] = {value}  FAILED: {r['stderr']}")
 
             duration = (datetime.now() - start).total_seconds() * 1000
+            tool_label = "i2c_4" if self.camera_series == "mv" else "i2c_v"
             return {
                 "success": all_ok,
                 "stdout": "\n".join(output_lines),
@@ -416,7 +473,7 @@ class CommandService:
                 "returncode": 0 if all_ok else 1,
                 "duration_ms": round(duration, 1),
                 "read_values": read_values,
-                "command": f"i2c_v{'read' if steps[0]['op']=='read' else 'write'} (direct)",
+                "command": f"{tool_label}{'read' if steps[0]['op']=='read' else 'write'} (direct)",
             }
 
         except Exception as e:
@@ -436,5 +493,5 @@ class CommandService:
                 "returncode": -1, "duration_ms": duration_ms}
 
     def is_tools_available(self) -> bool:
-        """Check if i2c_vread and i2c_vwrite binaries exist."""
-        return os.path.isfile(_I2C_VREAD) and os.path.isfile(_I2C_VWRITE)
+        """Check if the I2C tools for this series exist."""
+        return os.path.isfile(self._get_read_tool()) and os.path.isfile(self._get_write_tool())

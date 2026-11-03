@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Patch commands.json to add execution_steps for direct i2c_vread/i2c_vwrite calls.
+"""Patch commands JSON to add execution_steps for direct i2c tool calls.
+
+Supports both GX and MV/RAW series via --series argument.
 
 Execution step format:
   {"op": "read",  "reg": "0x0C18", "reg_type": 0}
   {"op": "write", "reg": "0x0C04", "reg_type": 0, "value_expr": "{param0}"}
 
-reg_type: 0 = ARM register, 1 = sensor register
+reg_type: 0 = ARM register (both GX and MV)
+          1 = sensor register (GX only, for snsreg)
 value_expr: Python expression; {param0}, {param1}... are user params,
             {read0}, {read1}... are previously read values.
+            Supports bitwise ops: |, &, ^, ~ (for MV bit-manipulation commands).
 """
-import json, os
+import json, os, argparse
 
 CONFIG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config")
 
@@ -19,7 +23,7 @@ def R(reg, rt=0):
 def W(reg, expr, rt=0):
     return {"op": "write", "reg": reg, "reg_type": rt, "value_expr": expr}
 
-def build_steps_map():
+def build_gx_steps_map():
     """Build a dict: command_id -> execution_steps list."""
     s = {}
 
@@ -160,12 +164,134 @@ def build_steps_map():
     return s
 
 
+def build_mv_steps_map():
+    """Build execution_steps map for MV/RAW series."""
+    s = {}
+
+    # ---- Device Information ----
+    s["manufacturer"] = [R("0x0000")]
+    s["model"]        = [R("0x0004")]
+    s["sensorname"]   = [R("0x0008")]
+    s["serialno"]     = [R("0x000C")]
+    s["version"]      = [R("0x0010")]
+    s["timestamp"]    = [R("0x0020")]
+    s["errcode"]      = [R("0x0024")]
+
+    # ---- Capabilities ----
+    s["fmtcap"]       = [R("0x0028")]
+    s["readmodecap"]  = [R("0x002C")]
+    s["trgmodecap"]   = [R("0x0030")]
+    s["lanecap"]      = [R("0x0034")]
+    s["sensortemp"]   = [R("0x0058")]
+    s["trgcyclemin"]  = [R("0x006C")]
+    s["trgcyclemax"]  = [R("0x0070")]
+    s["maxwh"]        = [R("0x0808"), R("0x080C")]
+    s["maxfps"]       = [R("0x0810")]
+    s["minwh"]        = [R("0x0844"), R("0x0848")]
+    s["minfps"]       = [R("0x084C")]
+
+    # ---- Resolution & Framerate ----
+    s["fps"]   = [R("0x0814"), W("0x0814", "int(round({param0} * 100))")]
+    s["roi"]   = [R("0x0820"), R("0x0824"), R("0x0818"), R("0x081C"),
+                  W("0x0820", "{param0}"), W("0x0824", "{param1}"),
+                  W("0x0818", "{param2}"), W("0x081C", "{param3}")]
+
+    # ---- Current Status ----
+    s["curwh"]          = [R("0x0818"), R("0x081C")]
+    s["readmode"]       = [R("0x0838"), W("0x0838", "{param0}")]
+    s["lanenum"]        = [R("0x083C"), W("0x083C", "{param0}")]
+    s["mipidatarate"]   = [R("0x0840")]
+    s["framecount"]     = [R("0x0464"), R("0x0468")]
+    s["fps_ex"]         = [R("0x0850"), W("0x0850", "int(round({param0} * 10000))")]
+    s["maxexptime_cur"] = [R("0x0C8C")]
+    s["minexptime_cur"] = [R("0x0C90")]
+
+    # ---- Exposure & Gain ----
+    s["expmode"]     = [R("0x0C04"), W("0x0C04", "{param0}")]
+    s["gainmode"]    = [R("0x0C1C"), W("0x0C1C", "{param0}")]
+    s["aatarget"]    = [R("0x0C08"), W("0x0C08", "{param0}")]
+    s["metime"]      = [R("0x0C10"), W("0x0C10", "{param0}")]
+    s["aemaxtime"]   = [R("0x0C14"), W("0x0C14", "{param0}")]
+    s["exptime"]     = [R("0x0C18")]
+    s["mgain"]       = [R("0x0C20"), W("0x0C20", "int(round({param0} * 10))")]
+    s["agmaxgain"]   = [R("0x0C24"), W("0x0C24", "int(round({param0} * 10))")]
+    s["curgain"]     = [R("0x0C28")]
+    s["aaroi"]       = [R("0x0C2C"), R("0x0C30"), R("0x0C34"), R("0x0C38"),
+                        W("0x0C2C", "{param0}"), W("0x0C30", "{param1}"),
+                        W("0x0C34", "{param2}"), W("0x0C38", "{param3}")]
+    s["aaroienable"] = [R("0x0C80"), W("0x0C80", "{param0}")]
+
+    # ---- ISP Image Processing ----
+    s["gamma"]        = [R("0x0C60"), W("0x0C60", "int(round({param0} * 100))")]
+    # Bit manipulation via ISP module ctrl (0x0C00): bit5=gamma, bit4=DPC
+    s["gammaenable"]  = [R("0x0C00"), W("0x0C00", "{read0} | 0x20"),
+                         W("0x0C00", "{read0} & ~0x20")]
+    s["dpcenable"]    = [R("0x0C00"), W("0x0C00", "{read0} | 0x10"),
+                         W("0x0C00", "{read0} & ~0x10")]
+
+    # ---- Trigger & Synchronization ----
+    s["trgmode"]         = [R("0x0404"), W("0x0404", "{param0}")]
+    s["trgsrc"]          = [R("0x0408"), W("0x0408", "{param0}")]
+    s["trgnum"]          = [R("0x040C"), W("0x040C", "{param0}")]
+    s["trginterval"]     = [R("0x0410"), W("0x0410", "{param0}")]
+    s["trgone"]          = [W("0x0414", "1")]
+    s["trgcount"]        = [R("0x0418"), W("0x0418", "1")]
+    s["trgedge"]         = [R("0x1004"), W("0x1004", "{param0}")]
+    s["trgdelay"]        = [R("0x1000"), W("0x1000", "{param0}")]
+    s["trgfilter_enable"]= [R("0x1008"), W("0x1008", "{param0}")]
+    s["trgfilter_time"]  = [R("0x100C"), W("0x100C", "{param0}")]
+    s["trgexp_delay"]    = [R("0x1010"), W("0x1010", "{param0}")]
+    s["slavemode"]       = [R("0x0460"), W("0x0460", "{param0}")]
+
+    # ---- GPIO Control ----
+    s["gpios_status"] = [R("0x1014")]
+    s["outio1_mode"]  = [R("0x1020"), W("0x1020", "{param0}")]
+    s["outio1_usr"]   = [R("0x1024"), W("0x1024", "{param0}")]
+    s["outio1_rvs"]   = [R("0x1028"), W("0x1028", "{param0}")]
+    s["outio2_mode"]  = [R("0x1030"), W("0x1030", "{param0}")]
+    s["outio2_usr"]   = [R("0x1034"), W("0x1034", "{param0}")]
+    s["outio2_rvs"]   = [R("0x1038"), W("0x1038", "{param0}")]
+
+    # ---- Video & Format ----
+    s["testimg"]              = [R("0x0800"), W("0x0800", "{param0}")]
+    s["pixelformat"]          = [R("0x0804"), W("0x0804", "{param0}")]
+    s["imgdir"]               = [R("0x0828"), W("0x0828", "{param0}")]
+    s["nondiscontinuousmode"] = [R("0x044C")]
+    s["osdmode"]              = [R("0x0854"), W("0x0854", "{param0}")]
+
+    # ---- System Control ----
+    s["imgacq"]       = [W("0x0400", "{param0}")]
+    s["factoryparam"] = [W("0x0014", "1")]
+    s["paramsave"]    = [W("0x0018", "1")]
+    s["reboot"]       = [W("0x001C", "1")]
+    s["i2caddr"]      = [R("0x041C"), W("0x041C", "{param0}")]
+    s["mcubypass"]    = [R("0x0424"), W("0x0424", "{param0}")]
+
+    # ---- Advanced Debug ----
+    # snsreg: indirect access - write sensor addr to 0x0450, read value from 0x0454
+    s["snsreg"]       = [W("0x0450", "{param0}"), R("0x0454")]
+    s["blcmode"]      = [R("0x0834"), W("0x0834", "{param0}")]
+    s["blacklevel"]    = [R("0x0830"), W("0x0830", "{param0}")]
+    s["exptime_range"] = [R("0x0C8C"), R("0x0C90")]
+
+    return s
+
+
 def main():
-    cmds_path = os.path.join(CONFIG_DIR, "commands.json")
+    parser = argparse.ArgumentParser(description="Patch commands JSON with execution_steps")
+    parser.add_argument("--series", choices=["gx", "mv"], default="gx",
+                        help="Camera series: gx (default) or mv")
+    args = parser.parse_args()
+
+    cmds_path = os.path.join(CONFIG_DIR, f"{args.series}_commands.json")
     with open(cmds_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    steps_map = build_steps_map()
+    if args.series == "mv":
+        steps_map = build_mv_steps_map()
+    else:
+        steps_map = build_gx_steps_map()
+
     patched = 0
     missing = []
 
@@ -180,7 +306,7 @@ def main():
     with open(cmds_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-    print(f"Patched {patched} commands with execution_steps")
+    print(f"Patched {patched} commands with execution_steps ({args.series})")
     if missing:
         print(f"WARNING: {len(missing)} commands missing from steps map: {missing}")
 

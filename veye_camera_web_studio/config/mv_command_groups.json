@@ -1,0 +1,147 @@
+{
+  "groups": [
+    {
+      "id": "device_info",
+      "name": {
+        "en": "Device Information",
+        "zh": "设备信息"
+      },
+      "description": {
+        "en": "Read camera manufacturer, model, sensor, serial number and version.",
+        "zh": "读取相机制造商、型号、传感器、序列号和版本信息。"
+      },
+      "icon": "info",
+      "order": 1
+    },
+    {
+      "id": "capabilities",
+      "name": {
+        "en": "Capability Set",
+        "zh": "能力集"
+      },
+      "description": {
+        "en": "Camera capabilities including format, read mode, trigger mode, lane capabilities and resolution/framerate limits.",
+        "zh": "相机能力集，包括格式、读取模式、触发模式、Lane 能力及分辨率/帧率范围。"
+      },
+      "icon": "list",
+      "order": 2
+    },
+    {
+      "id": "video_modes",
+      "name": {
+        "en": "Resolution & Framerate",
+        "zh": "分辨率和帧率"
+      },
+      "description": {
+        "en": "Resolution and framerate configuration including ROI and frame rate settings.",
+        "zh": "分辨率和帧率配置，包括 ROI 和帧率设置。"
+      },
+      "icon": "video",
+      "order": 3
+    },
+    {
+      "id": "current_status",
+      "name": {
+        "en": "Current Status",
+        "zh": "当前状态"
+      },
+      "description": {
+        "en": "Read current camera status including resolution, frame rate, exposure, gain, temperature, etc.",
+        "zh": "读取相机当前状态，包括分辨率、帧率、曝光、增益、温度等。"
+      },
+      "icon": "dashboard",
+      "order": 4
+    },
+    {
+      "id": "exposure_gain",
+      "name": {
+        "en": "Exposure & Gain",
+        "zh": "曝光与增益"
+      },
+      "description": {
+        "en": "Configure exposure mode, gain mode, AE target, manual exposure time, gain, exposure time range and related parameters.",
+        "zh": "配置曝光模式、增益模式、AE 目标、手动曝光时间、增益、曝光时间范围及相关参数。"
+      },
+      "icon": "sun",
+      "order": 5
+    },
+    {
+      "id": "isp_processing",
+      "name": {
+        "en": "ISP Image Processing",
+        "zh": "ISP 图像处理"
+      },
+      "description": {
+        "en": "Configure ISP parameters: gamma, gamma enable, DPC enable, BLC mode, black level, etc.",
+        "zh": "配置 ISP 参数：Gamma、Gamma 使能、DPC 使能、BLC 模式、黑电平等。"
+      },
+      "icon": "image",
+      "order": 6
+    },
+    {
+      "id": "trigger_sync",
+      "name": {
+        "en": "Trigger & Synchronization",
+        "zh": "触发与同步"
+      },
+      "description": {
+        "en": "Configure trigger mode, source, number, interval, delay, filter, edge, software trigger and synchronization.",
+        "zh": "配置触发模式、触发源、触发帧数、间隔、延迟、滤波、边沿、软件触发和同步。"
+      },
+      "icon": "zap",
+      "order": 7
+    },
+    {
+      "id": "gpio_control",
+      "name": {
+        "en": "GPIO Control",
+        "zh": "GPIO 控制"
+      },
+      "description": {
+        "en": "Configure GPIO output mode, user output, signal reversal and read GPIO status.",
+        "zh": "配置 GPIO 输出模式、用户输出、信号反转及读取 GPIO 状态。"
+      },
+      "icon": "cpu",
+      "order": 8
+    },
+    {
+      "id": "video_format",
+      "name": {
+        "en": "Video & Format",
+        "zh": "视频与格式"
+      },
+      "description": {
+        "en": "Configure pixel format, image direction, test image, MIPI clock mode, OSD mode, etc.",
+        "zh": "配置像素格式、图像方向、测试图像、MIPI 时钟模式、OSD 模式等。"
+      },
+      "icon": "settings",
+      "order": 9
+    },
+    {
+      "id": "system_control",
+      "name": {
+        "en": "System Control",
+        "zh": "系统控制"
+      },
+      "description": {
+        "en": "System-level operations: factory reset, save to flash, reboot, I2C address change, image acquisition, MCU bypass.",
+        "zh": "系统级操作：恢复出厂设置、保存到 Flash、重启、修改 I2C 地址、采集控制、MCU 旁路。"
+      },
+      "icon": "power",
+      "order": 10
+    },
+    {
+      "id": "advanced",
+      "name": {
+        "en": "Advanced Debug",
+        "zh": "高级调试"
+      },
+      "description": {
+        "en": "Advanced debug operations: sensor register indirect read.",
+        "zh": "高级调试操作：传感器寄存器间接读取。"
+      },
+      "icon": "tool",
+      "order": 11
+    }
+  ]
+}

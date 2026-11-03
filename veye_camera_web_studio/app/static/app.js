@@ -16,6 +16,8 @@
         cameras: [],
         selectedCamera: null,
         platform: "jetson",
+        cameraSeries: "gx",  // "gx" or "mv"
+        supportedSeries: [],
         commandRequestCounter: 0, // Track selectCommand requests to prevent race conditions
         defaultConfig: {
             i2c_bus: 10,
@@ -37,6 +39,7 @@
             "camVideoNode", "camMediaNode", "camEntityName",
             "defaultI2cInfo", "defaultI2cBus", "defaultI2cAddr",
             "btnRescan",
+            "cameraSeriesDisplay", "camSeries",
             "searchInput", "groupsList",
             "welcomeScreen", "splitView", "searchResultsView",
             "groupTitle", "groupDescription", "commandCards",
@@ -149,6 +152,14 @@
             const config = await apiGet("/api/config");
             state.defaultConfig.i2c_bus = config.default_i2c_bus || 10;
             state.defaultConfig.i2c_addr = config.default_i2c_addr || "0x3b";
+            // Load supported series (for reference, no longer user-selectable)
+            if (config.supported_series) {
+                state.supportedSeries = config.supported_series;
+            }
+            // Default series (used until a camera is selected and auto-detected)
+            if (config.default_series) {
+                state.cameraSeries = config.default_series;
+            }
         } catch (e) {
             console.warn("Failed to load default config:", e);
         }
@@ -183,6 +194,7 @@
 
         // Show loading
         dom.cameraSelectorWrap.style.display = "none";
+        dom.cameraSeriesDisplay.style.display = "none";
         dom.cameraDetail.style.display = "none";
         dom.defaultI2cInfo.style.display = "none";
         dom.cameraList.style.display = "";
@@ -224,6 +236,30 @@
         if (!cam) return;
         state.selectedCamera = cam;
 
+        // Auto-switch camera series if detected from sysfs
+        if (cam.series && cam.series !== state.cameraSeries) {
+            console.log(`Auto-detected camera series: ${cam.series} (switching from ${state.cameraSeries})`);
+            state.cameraSeries = cam.series;
+            // Reload groups/commands for the new series
+            state.currentGroup = null;
+            state.currentCommand = null;
+            state.commands = [];
+            loadGroups();
+            showView("welcome");
+            dom.opPanel.style.display = "none";
+            dom.opPlaceholder.style.display = "";
+        } else if (cam.series) {
+            // Same series, just update display
+            state.cameraSeries = cam.series;
+        }
+
+        // Update series display (read-only badge)
+        if (dom.cameraSeriesDisplay && dom.camSeries) {
+            const seriesLabels = { gx: "GX Series", mv: "MV/RAW Series" };
+            dom.camSeries.textContent = cam.series ? (seriesLabels[cam.series] || cam.series.toUpperCase()) : "—";
+            dom.cameraSeriesDisplay.style.display = "";
+        }
+
         // Show camera detail
         dom.cameraDetail.style.display = "";
         dom.camModel.textContent = cam.model || "—";
@@ -245,10 +281,14 @@
         txt.textContent = s === "online" ? "Online" : s === "error" ? "Error" : "Loading...";
     }
 
+    // ========== Camera Series ==========
+    // Series is now auto-detected from sysfs when a camera is selected.
+    // No manual series change handler needed.
+
     // ========== Command Groups ==========
     async function loadGroups() {
         try {
-            const data = await apiGet("/api/commands/groups");
+            const data = await apiGet(`/api/commands/groups?series=${state.cameraSeries}`);
             state.groups = (data.groups || []).sort((a, b) => a.order - b.order);
             renderGroups();
         } catch (e) {
@@ -284,7 +324,7 @@
             btn.classList.toggle("active", btn.dataset.group === groupId);
         });
         try {
-            let url = `/api/commands?group=${groupId}&lang=${state.lang}`;
+            let url = `/api/commands?group=${groupId}&lang=${state.lang}&series=${state.cameraSeries}`;
             // For video_modes group, pass I2C info for capability-based filtering
             if (groupId === "video_modes") {
                 const i2c = getEffectiveI2c();
@@ -380,6 +420,7 @@
             i2c_addr: i2c.addr,
             params: [mode],
             timeout: 5,
+            series: state.cameraSeries,
         };
         try {
             const data = await apiPost(`/api/commands/videomode/execute`, body);
@@ -445,7 +486,7 @@
         dom.btnWrite.disabled = true;
 
         try {
-            const cmd = await apiGet(`/api/commands/${commandId}`);
+            const cmd = await apiGet(`/api/commands/${commandId}?series=${state.cameraSeries}`);
 
             // Only proceed if this is still the latest request
             if (requestId !== state.commandRequestCounter) {
@@ -469,7 +510,7 @@
             // Show operation panel
             dom.opPlaceholder.style.display = "none";
             dom.opPanel.style.display = "";
-            renderOpPanel(cmd);
+            await renderOpPanel(cmd);
         } catch (e) {
             console.error("Failed to load command:", e);
         } finally {
@@ -481,7 +522,7 @@
         }
     }
 
-    function renderOpPanel(cmd) {
+    async function renderOpPanel(cmd) {
         // Reset result
         dom.opResult.style.display = "none";
         dom.opResult.innerHTML = `<div class="op-result-placeholder">Execute a command to see results here</div>`;
@@ -527,11 +568,65 @@
             dom.opParamsSection.style.display = "";
             dom.noParamsMsg.style.display = "none";
             dom.paramForm.style.display = "";
+
+            // Check for capability filters and fetch capabilities first
+            const capFilters = params
+                .map((p, i) => ({ param: p, index: i, filter: p.capability_filter }))
+                .filter(x => x.filter);
+
+            // Fetch all capability values in parallel
+            const capValues = {};
+            if (capFilters.length > 0) {
+                console.log('Capability filters found:', capFilters);
+                const i2c = getEffectiveI2c();
+                console.log('I2C config:', i2c);
+                const uniqueCapCmds = [...new Set(capFilters.map(f => f.filter.command_id))];
+                console.log('Unique capability commands:', uniqueCapCmds);
+                await Promise.all(uniqueCapCmds.map(async (capCmdId) => {
+                    try {
+                        const result = await apiPost(`/api/commands/${capCmdId}/execute`, {
+                            series: state.cameraSeries,
+                            command_id: capCmdId,
+                            params: [],
+                            i2c_bus: i2c.bus,
+                            i2c_addr: i2c.addr
+                        });
+                        console.log(`Capability ${capCmdId} result:`, result);
+                        if (result.success && result.read_values && result.read_values.length > 0) {
+                            capValues[capCmdId] = result.read_values[0];
+                        }
+                    } catch (e) {
+                        console.warn(`Failed to read capability ${capCmdId}:`, e);
+                    }
+                }));
+                console.log('Final capability values:', capValues);
+            }
+
             dom.paramForm.innerHTML = params
                 .map((p, i) => {
                     const label = p.label[state.lang] || p.label.en;
                     if (p.type === "enum") {
-                        const opts = p.options
+                        let options = p.options;
+
+                        // Apply capability filter if present
+                        if (p.capability_filter) {
+                            const capCmdId = p.capability_filter.command_id;
+                            const capValue = capValues[capCmdId];
+                            const bitMapping = p.capability_filter.bit_mapping;
+                            console.log(`Filtering options for ${p.name}:`, { capCmdId, capValue, bitMapping, originalOptions: options });
+
+                            if (capValue !== undefined) {
+                                options = options.filter(o => {
+                                    const bit = bitMapping[String(o.value)] ?? bitMapping[o.value];
+                                    const keep = bit !== undefined && (capValue & (1 << bit)) !== 0;
+                                    console.log(`  Option ${o.value}: bit=${bit}, keep=${keep}`);
+                                    return keep;
+                                });
+                                console.log(`Filtered options:`, options);
+                            }
+                        }
+
+                        const opts = options
                             .map((o) => {
                                 const lbl = typeof o.label === "object" ? o.label[state.lang] || o.label.en : o.label;
                                 return `<option value="${o.value}">${lbl}</option>`;
@@ -625,6 +720,7 @@
             params: collectParams(),
             timeout: 5,
             action: "read",
+            series: state.cameraSeries,
         };
         await doExecute(body, dom.btnRead);
     }
@@ -643,6 +739,7 @@
             params: collectParams(),
             timeout: 5,
             action: "write",
+            series: state.cameraSeries,
         };
         await doExecute(body, dom.btnWrite);
     }
@@ -789,6 +886,58 @@
                             <span class="result-data">${label}: ${celsius.toFixed(2)} °C</span>
                         </div>`;
                     }
+                    // Special handling for exposure time range command
+                    else if (cmd && cmd.id === "exptime_range") {
+                        const lang = state.lang || 'en';
+                        const maxLabel = lang === 'zh' ? '最大曝光时间' : 'Max Exposure Time';
+                        const minLabel = lang === 'zh' ? '最小曝光时间' : 'Min Exposure Time';
+                        if (i === 0) {
+                            // R0 = 0x0C8C = Max exposure time (unit: us)
+                            const us = num;
+                            const ms = us / 1000;
+                            html += `
+                            <div class="result-value">
+                                <span class="result-label">Max</span>
+                                <span class="result-data">${maxLabel}: ${us} μs${us >= 1000 ? ` (${ms.toFixed(3)} ms)` : ''}</span>
+                            </div>`;
+                        } else if (i === 1) {
+                            // R1 = 0x0C90 = Min exposure time (unit: 0.1us)
+                            const unit01us = num;
+                            const us = num / 10;
+                            html += `
+                            <div class="result-value">
+                                <span class="result-label">Min</span>
+                                <span class="result-data">${minLabel}: ${us} μs${us >= 1000 ? ` (${(us/1000).toFixed(3)} ms)` : ''}</span>
+                            </div>`;
+                        }
+                    }
+                    // Special handling for sensor register indirect read
+                    else if (cmd && cmd.id === "snsreg") {
+                        const lang = state.lang || 'en';
+                        // 0x0454: highest bit (bit 31) indicates read completion
+                        const ready = (num & 0x80000000) !== 0;
+                        const actualValue = num & 0x7FFFFFFF; // Mask out bit 31
+                        const hex = "0x" + actualValue.toString(16).toUpperCase().padStart(8, "0");
+                        const dec = actualValue.toString(10);
+                        
+                        const statusLabel = lang === 'zh' ? '状态' : 'Status';
+                        const readyText = lang === 'zh' ? (ready ? '✅ 读取完成' : '⏳ 读取未完成') : (ready ? '✅ Read Complete' : '⏳ Read Incomplete');
+                        const regValueLabel = lang === 'zh' ? '传感器寄存器值' : 'Sensor Register Value';
+                        
+                        html += `
+                        <div class="result-value">
+                            <span class="result-label">${statusLabel}</span>
+                            <span class="result-data">${readyText}</span>
+                        </div>
+                        <div class="result-value">
+                            <span class="result-label">HEX</span>
+                            <span class="result-data">${regValueLabel}: ${hex}</span>
+                        </div>
+                        <div class="result-value">
+                            <span class="result-label">DEC</span>
+                            <span class="result-data">${regValueLabel}: ${dec}</span>
+                        </div>`;
+                    }
                     // Show transformed value if value_transform.read is defined (skip for temp commands - already handled above)
                     else if (cmd && cmd.register?.value_transform?.read) {
                         const transformed = applyTransform(num, cmd.register.value_transform.read);
@@ -861,7 +1010,7 @@
                 return;
             }
             try {
-                const data = await apiGet(`/api/commands?search=${encodeURIComponent(q)}&lang=${state.lang}`);
+                const data = await apiGet(`/api/commands?search=${encodeURIComponent(q)}&lang=${state.lang}&series=${state.cameraSeries}`);
                 showView("search");
                 dom.searchTitle.textContent = `"${q}" — ${data.count} results`;
                 renderCommandCards(data.commands || [], dom.searchResults);

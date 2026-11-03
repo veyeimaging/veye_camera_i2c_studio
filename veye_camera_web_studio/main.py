@@ -39,13 +39,22 @@ CONFIG_DIR = os.path.join(BASE_DIR, "config")
 async def lifespan(app: FastAPI):
     """Application startup/shutdown lifecycle."""
     logger.info("VEYE Camera Web Studio starting up...")
-    # Load config files to verify they exist
-    for fname in ["commands.json", "command_groups.json", "i18n.json"]:
+    # Verify series-independent config files
+    for fname in ["i18n.json"]:
         path = os.path.join(CONFIG_DIR, fname)
         if os.path.isfile(path):
             logger.info(f"  Config loaded: {fname}")
         else:
             logger.warning(f"  Config missing: {fname}")
+    # Verify series-specific config files for each supported camera series
+    for series in ["gx", "mv"]:
+        for base in ["commands", "command_groups", "register"]:
+            fname = f"{series}_{base}.json"
+            path = os.path.join(CONFIG_DIR, fname)
+            if os.path.isfile(path):
+                logger.info(f"  Config loaded: {fname}")
+            else:
+                logger.warning(f"  Config missing: {fname}")
     yield
     logger.info("VEYE Camera Web Studio shutting down.")
 
@@ -53,7 +62,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VEYE Camera Web Studio",
     description="Web-based tool for managing and debugging VEYE cameras",
-    version="0.1.3",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -108,11 +117,16 @@ def get_config():
     i2c_defaults = _load_default_i2c_config()
     config = {
         "app_name": "VEYE Camera Web Studio",
-        "version": "0.1.1",
+        "version": "0.2.0",
         "default_i2c_bus": i2c_defaults["default_i2c_bus"],
         "default_i2c_addr": i2c_defaults["default_i2c_addr"],
         "default_timeout": 5,
         "supported_languages": ["en", "zh"],
+        "supported_series": [
+            {"id": "gx", "label": {"en": "GX Series", "zh": "GX 系列"}},
+            {"id": "mv", "label": {"en": "MV/RAW Series", "zh": "MV/RAW 系列"}},
+        ],
+        "default_series": "gx",
     }
     # Try to load platform config from config/ directory
     platform_path = os.path.join(CONFIG_DIR, "platform.json")

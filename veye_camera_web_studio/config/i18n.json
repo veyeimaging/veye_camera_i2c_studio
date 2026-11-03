@@ -11,6 +11,7 @@
     "title": { "en": "Device Information", "zh": "设备信息" },
     "platform": { "en": "Platform", "zh": "平台" },
     "platform_select": { "en": "Select Platform", "zh": "选择平台" },
+    "series_select": { "en": "Camera Series", "zh": "相机系列" },
     "os": { "en": "Operating System", "zh": "操作系统" },
     "kernel": { "en": "Kernel", "zh": "内核" },
     "camera_detected": { "en": "Cameras Detected", "zh": "检测到的相机" },

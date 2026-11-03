@@ -28,7 +28,7 @@ def get_system_info() -> Dict[str, Any]:
 
 @router.get("/devices/cameras")
 def get_cameras() -> Dict[str, Any]:
-    """Detect and return connected VEYE cameras."""
+    """Detect and return connected VEYE cameras, including auto-detected series."""
     platform = _system_service.get_system_info().get("platform", "unknown")
     probe = ProbeService(platform=platform)
 
@@ -39,10 +39,22 @@ def get_cameras() -> Dict[str, Any]:
     if not cameras:
         cameras = probe.probe_from_json()
 
+    # Enrich each camera with auto-detected series
+    for cam in cameras:
+        bus = cam.get("i2c_bus", "")
+        if bus:
+            detected = ProbeService.detect_camera_series(bus)
+            if detected:
+                cam["series"] = detected
+
+    # Determine overall detected series (from first camera)
+    detected_series = cameras[0].get("series") if cameras else None
+
     return {
         "platform": platform,
         "cameras": cameras,
         "count": len(cameras),
+        "detected_series": detected_series,
         "probe_script": probe.get_probe_script_info(),
     }
 

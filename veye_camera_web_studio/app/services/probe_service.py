@@ -12,6 +12,7 @@ _BASE = os.path.join(os.path.dirname(__file__), "..", "..")
 SCRIPTS_DIR = os.path.join(_BASE, "tools", "probe")
 _TOOLS_DIR = os.path.join(_BASE, "tools")
 _I2C_VREAD = os.path.join(_TOOLS_DIR, "i2c_vread")
+_I2C_4READ = os.path.join(_TOOLS_DIR, "i2c_4read")
 
 # Platform display names
 PLATFORM_NAMES = {
@@ -137,6 +138,11 @@ class ProbeService:
             bus = cam.get("i2c_bus", "")
             addr = "0x3b"
 
+            # Auto-detect camera series from sysfs
+            detected_series = self.detect_camera_series(bus)
+            if detected_series:
+                info["series"] = detected_series
+
             # Read camera_model from sysfs
             info["model"] = self._read_sysfs(bus, "camera_model")
             info["fps"] = self._read_sysfs(bus, "fps")
@@ -144,14 +150,18 @@ class ProbeService:
             info["height"] = self._read_sysfs(bus, "height")
 
             # Read version register (0x0010) → split C/L
-            ver_raw = self._i2c_read(bus, addr, "0x0010")
+            ver_raw = self._i2c_read(bus, addr, "0x0010", detected_series)
             if ver_raw is not None:
                 try:
-                    ver_int = int(ver_raw, 16)  # hex string from i2c_vread
+                    # MV tool returns decimal string; GX tool returns hex string
+                    if detected_series == "mv":
+                        ver_int = int(ver_raw)  # decimal
+                    else:
+                        ver_int = int(ver_raw, 16)  # hex
                     c_ver = (ver_int >> 16) & 0xFFFF
                     l_ver = ver_int & 0xFFFF
-                    info["version_c"] = f"{(c_ver >> 8) & 0xFF}.{c_ver & 0xFF:02x}"
-                    info["version_l"] = f"{(l_ver >> 8) & 0xFF}.{l_ver & 0xFF:02x}"
+                    info["version_c"] = f"{(c_ver >> 8) & 0xFF:X}.{c_ver & 0xFF:02x}"
+                    info["version_l"] = f"{(l_ver >> 8) & 0xFF:X}.{l_ver & 0xFF:02x}"
                 except (ValueError, TypeError):
                     info["version_c"] = "?"
                     info["version_l"] = "?"
@@ -160,9 +170,16 @@ class ProbeService:
                 info["version_l"] = "?"
 
             # Read serial register (0x000C)
-            ser_raw = self._i2c_read(bus, addr, "0x000C")
+            ser_raw = self._i2c_read(bus, addr, "0x000C", detected_series)
             if ser_raw is not None:
-                info["serial"] = f"0x{ser_raw.upper()}"
+                try:
+                    if detected_series == "mv":
+                        ser_int = int(ser_raw)  # decimal
+                        info["serial"] = f"0x{ser_int:08X}"
+                    else:
+                        info["serial"] = f"0x{ser_raw.upper()}"
+                except (ValueError, TypeError):
+                    info["serial"] = "?"
             else:
                 info["serial"] = "?"
 
@@ -177,34 +194,87 @@ class ProbeService:
         }
 
     @staticmethod
-    def _read_sysfs(bus: str, attr: str) -> str:
-        """Read a sysfs attribute for a VEYE camera on the given I2C bus."""
-        if not bus:
-            return ""
-        path = f"/sys/bus/i2c/devices/i2c-{bus}/{bus}-003b/veye_gxcam/{attr}"
-        try:
-            with open(path, "r") as f:
-                return f.read().strip()
-        except (FileNotFoundError, PermissionError, OSError):
-            return ""
+    def detect_camera_series(i2c_bus: str, i2c_addr: str = "003b") -> Optional[str]:
+        """Detect camera series by checking sysfs for veye_mvcam or veye_gxcam.
+
+        Returns:
+            "mv" if veye_mvcam directory exists (MV/RAW series)
+            "gx" if veye_gxcam directory exists (GX series)
+            None if neither found or bus is empty
+        """
+        if not i2c_bus:
+            return None
+        base = f"/sys/bus/i2c/devices/i2c-{i2c_bus}/{i2c_bus}-{i2c_addr}/"
+        # Check MV series first
+        if os.path.isdir(base + "veye_mvcam"):
+            return "mv"
+        # Check GX series
+        if os.path.isdir(base + "veye_gxcam"):
+            return "gx"
+        return None
 
     @staticmethod
-    def _i2c_read(bus: str, addr: str, reg: str) -> Optional[str]:
-        """Read a single I2C register using i2c_vread. Returns raw hex string or None."""
-        if not bus or not os.path.isfile(_I2C_VREAD):
+    def _read_sysfs(bus: str, attr: str) -> str:
+        """Read a sysfs attribute for a VEYE camera on the given I2C bus.
+
+        Tries both veye_mvcam (MV series) and veye_gxcam (GX series) paths.
+        """
+        if not bus:
+            return ""
+        # Try MV series path first, then GX
+        for driver_name in ("veye_mvcam", "veye_gxcam"):
+            path = f"/sys/bus/i2c/devices/i2c-{bus}/{bus}-003b/{driver_name}/{attr}"
+            try:
+                with open(path, "r") as f:
+                    return f.read().strip()
+            except (FileNotFoundError, PermissionError, OSError):
+                continue
+        return ""
+
+    @staticmethod
+    def _i2c_read(bus: str, addr: str, reg: str, series: Optional[str] = None) -> Optional[str]:
+        """Read a single I2C register using the appropriate tool for the camera series.
+
+        GX: uses i2c_vread (returns hex string in stderr 'value XXXXXXXX')
+        MV: uses i2c_4read (returns decimal string in stdout; exit code != 0 is normal)
+
+        Returns raw value string or None on failure.
+        """
+        if not bus:
             return None
-        try:
-            r = subprocess.run(
-                [_I2C_VREAD, str(bus), addr, reg, "0"],
-                capture_output=True, text=True, timeout=3,
-            )
-            if r.returncode == 0:
-                # "value XXXXXXXX" may appear in stdout or stderr
-                combined = r.stdout + "\n" + r.stderr
-                for line in combined.split("\n"):
-                    line = line.strip()
-                    if line.startswith("value "):
-                        return line.split()[1]
-        except Exception:
-            pass
-        return None
+
+        if series == "mv":
+            # MV series: use i2c_4read
+            if not os.path.isfile(_I2C_4READ):
+                return None
+            try:
+                r = subprocess.run(
+                    [_I2C_4READ, str(bus), addr, reg],
+                    capture_output=True, text=True, timeout=3,
+                )
+                # i2c_4read outputs decimal value to stdout
+                raw = r.stdout.strip()
+                if raw and raw.lstrip("-").isdigit():
+                    return raw
+            except Exception:
+                pass
+            return None
+        else:
+            # GX series (or unknown): use i2c_vread
+            if not os.path.isfile(_I2C_VREAD):
+                return None
+            try:
+                r = subprocess.run(
+                    [_I2C_VREAD, str(bus), addr, reg, "0"],
+                    capture_output=True, text=True, timeout=3,
+                )
+                if r.returncode == 0:
+                    # "value XXXXXXXX" may appear in stdout or stderr
+                    combined = r.stdout + "\n" + r.stderr
+                    for line in combined.split("\n"):
+                        line = line.strip()
+                        if line.startswith("value "):
+                            return line.split()[1]
+            except Exception:
+                pass
+            return None

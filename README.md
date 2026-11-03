@@ -4,7 +4,7 @@
 
 基于 Web 的 VEYE 相机管理与调试工具。通过浏览器即可对相机进行寄存器级别的读写操作。
 
-> **v0.1.2 Beta 版本** — 支持 Jetson 和 Raspberry Pi 5 平台，支持 GX/GXC 系列相机。
+> **v0.1.3 Beta 版本** — 支持 Jetson、Raspberry Pi 5 和 Rockchip 平台，支持 GX/GXC 系列相机。
 
 ## 1. 功能
 
@@ -155,7 +155,7 @@ cd veye_camera_web_studio
 | Nvidia Jetson | ✅ 完全支持 | 原始开发平台 |
 | Raspberry Pi 5 | ✅ 完全支持 | Debian 13 / aarch64 已测试 |
 | Raspberry Pi 4 | ⚠️ 实验性 | 脚本已包含，待验证 |
-| Rockchip RK3588 | ⚠️ 实验性 | 脚本已包含，待验证 |
+| Rockchip RK3588 | ✅ 完全支持 | Orange Pi CM5 已测试 |
 
 ## 8. 版本历史
 

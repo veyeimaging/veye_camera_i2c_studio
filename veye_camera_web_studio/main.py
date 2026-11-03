@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VEYE Camera Web Studio",
     description="Web-based tool for managing and debugging VEYE cameras",
-    version="0.1.2",
+    version="0.1.3",
     lifespan=lifespan,
 )
 
@@ -130,7 +130,7 @@ def get_config():
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Serve the main application page."""
-    return templates.TemplateResponse(request=request, name="index.html")
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/health")

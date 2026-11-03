@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-11-03
+
+### Added
+- **Rockchip Platform Support**: Full compatibility with Rockchip RK3588 platform
+  - Verified on Orange Pi CM5 with Ubuntu 22.04 (aarch64)
+  - Platform detection via `/proc/device-tree/compatible`
+  - Camera probe functionality tested with VEYE GXC-MIPI-IMX662
+  - I2C communication validated on `/dev/i2c-5`
+
+### Fixed
+- **TemplateResponse API Compatibility**: Fixed `TypeError` with newer Starlette versions
+  - Updated `Jinja2Templates.TemplateResponse()` call in `main.py`
+  - Changed from keyword arguments to positional arguments for compatibility
+  - Resolves "Internal Server Error" when accessing web interface
+
+### Tested Platforms
+- ✅ Nvidia Jetson (original platform)
+- ✅ Raspberry Pi 5 (Debian 13 / aarch64)
+- ✅ Rockchip RK3588 (Orange Pi CM5 / Ubuntu 22.04)
+
+---
+
 ## [0.1.2] - 2026-11-02
 
 ### Added
@@ -67,7 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | Nvidia Jetson | ✅ Full Support | Original development platform |
 | Raspberry Pi 5 | ✅ Full Support | Tested with Debian 13 (aarch64) |
 | Raspberry Pi 4 | ⚠️ Untested | Scripts available, needs validation |
-| Rockchip RK3588 | ⚠️ Untested | Scripts available, needs validation |
+| Rockchip RK3588 | ✅ Full Support | Tested on Orange Pi CM5 |
 
+[0.1.3]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/yourusername/veye_camera_i2c_studio/releases/tag/v0.1.1

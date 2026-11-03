@@ -4,7 +4,7 @@
 
 A web-based tool for managing and debugging VEYE cameras. Perform register-level read/write operations directly from your browser.
 
-> **v0.1.2 Beta Release** — Supports Jetson and Raspberry Pi 5 platforms. Only GX/GXC series cameras are supported.
+> **v0.1.3 Beta Release** — Supports Jetson, Raspberry Pi 5, and Rockchip platforms. Only GX/GXC series cameras are supported.
 
 ## Features
 
@@ -143,8 +143,7 @@ cd veye_camera_web_studio
 ## Known Limitations
 
 - Only **GX/GXC series** cameras are supported (MV series not yet adapted)
-- **Jetson** and **Raspberry Pi 5** are fully tested
-- Rockchip platform and other Raspberry Pi versions are not yet fully validated
+- **Jetson**, **Raspberry Pi 5**, and **Rockchip** are fully tested
 - Requires I2C bus access permissions (may need root or proper udev rules)
 - Multiple clients accessing the I2C bus concurrently may cause conflicts
 
@@ -155,7 +154,7 @@ cd veye_camera_web_studio
 | Nvidia Jetson | ✅ Full Support | Original development platform |
 | Raspberry Pi 5 | ✅ Full Support | Tested with Debian 13 / aarch64 |
 | Raspberry Pi 4 | ⚠️ Experimental | Scripts included, needs validation |
-| Rockchip RK3588 | ⚠️ Experimental | Scripts included, needs validation |
+| Rockchip RK3588 | ✅ Full Support | Tested on Orange Pi CM5 |
 
 ## Changelog
 

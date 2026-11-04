@@ -5,6 +5,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-11-03
+
+### Added
+- **MV/RAW Series Support**: Full web register access for MV and RAW series cameras
+  - 88 MV series registers defined in `config/mv_register.json`
+  - 76 MV commands across 11 command groups
+  - Auto-detection of camera series (GX vs MV/RAW) from sysfs
+  - Series-specific command groups and register maps
+
+- **Trigger Mode Capability Filtering**: Dynamic dropdown filtering based on hardware capabilities
+  - Trigger mode options filtered by `trgmodecap` (0x0030) register bits
+  - Frontend reads capability register and filters enum options accordingly
+  - Supports bit-mapped capability checking for flexible hardware feature detection
+
+- **Enhanced Result Display**: Special formatting for specific command types
+  - **Exposure Time Range**: Shows max/min exposure time with unit conversion (μs/ms)
+  - **Sensor Register Read**: Verifies ready bit (bit 31) and displays actual register value
+  - **Temperature Commands**: Shows both Kelvin and Celsius values
+  - All special displays support both English and Chinese languages
+
+- **Command Organization Improvements**
+  - BLC Mode and Black Level moved from Advanced Debug to ISP Processing group
+  - Exposure Time Range moved from Advanced Debug to Exposure & Gain group
+  - ROI Configuration placed above Frame Rate in video modes
+
+### Changed
+- **Version Format**: L version now displays in hex format (e.g., "F3.20" instead of "243.20")
+- **Command Generation**: Refactored `generate_commands.py` to support multiple camera series
+  - Added `--series` argument (gx or mv)
+  - Separate command builders for GX and MV series
+  - Series-specific wiki URLs and register definitions
+
+- **API Endpoints**: All command APIs now accept `series` parameter
+  - `/api/commands?series=mv` for MV series commands
+  - `/api/commands/groups?series=mv` for MV series groups
+  - `/api/commands/{id}?series=mv` for specific MV commands
+
+### Fixed
+- **Async Function Handling**: Fixed `renderOpPanel` to properly handle async capability reading
+- **I2C Configuration**: Fixed capability filter to use `getEffectiveI2c()` instead of undefined state properties
+- **Cache Busting**: Updated JS version parameter to force browser cache refresh
+
+### Files Added
+- `config/mv_commands.json` - MV series command definitions (76 commands)
+- `config/mv_command_groups.json` - MV series command group definitions (11 groups)
+- `config/gx_commands.json` - GX series command definitions (renamed from commands.json)
+- `config/gx_command_groups.json` - GX series command group definitions
+
+### Files Modified
+- `scripts/generate_commands.py` - Added MV series command builder
+- `scripts/patch_execution_steps.py` - Added MV series execution steps
+- `app/static/app.js` - Added series support, capability filtering, enhanced displays
+- `app/api/commands.py` - Added series parameter support
+- `app/api/devices.py` - Added series detection from sysfs
+- `app/services/command_service.py` - Added series-aware command execution
+- `app/services/probe_service.py` - Added series detection and version format fix
+- `config/mv_register.json` - MV series register definitions (88 registers)
+- `config/i18n.json` - Added series-related translations
+- `app/templates/index.html` - Added series display badge
+
+---
+
 ## [0.1.3] - 2026-11-03
 
 ### Added

@@ -43,18 +43,16 @@ if ! command -v gcc &>/dev/null; then
     fail "gcc is required but not found.\n   Install with: sudo apt install gcc"
 fi
 
-if [ ! -f "$SOURCE_DIR/i2c_vread.c" ] || [ ! -f "$SOURCE_DIR/i2c_vwrite.c" ]; then
-    fail "Source files not found in $SOURCE_DIR"
+if [ ! -f "$SOURCE_DIR/Makefile" ]; then
+    fail "Makefile not found in $SOURCE_DIR"
 fi
 
 cd "$SOURCE_DIR"
+make clean
+make -j$(nproc)
 
-echo "  Compiling i2c_vread..."
-gcc -Wall -O2 -o ../i2c_vread i2c_vread.c strfunc.c
-echo "  Compiling i2c_vwrite..."
-gcc -Wall -O2 -o ../i2c_vwrite i2c_vwrite.c strfunc.c
-
-chmod +x "$TOOLS_DIR/i2c_vread" "$TOOLS_DIR/i2c_vwrite"
+chmod +x "$TOOLS_DIR/i2c_vread" "$TOOLS_DIR/i2c_vwrite" \
+         "$TOOLS_DIR/i2c_4read" "$TOOLS_DIR/i2c_4write" 2>/dev/null || true
 ARCH=$(uname -m)
 info "I2C tools compiled for $ARCH"
 

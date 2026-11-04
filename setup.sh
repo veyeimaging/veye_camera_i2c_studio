@@ -25,6 +25,58 @@ echo "=========================================="
 echo ""
 
 # ─────────────────────────────────────────────
+# Configure pip mirror for faster installation
+# ─────────────────────────────────────────────
+# Auto-detect region, or force via REGION environment variable
+# REGION=cn for China mirrors, REGION=global for official PyPI
+
+setup_pip_mirror() {
+    local region="${REGION:-auto}"
+    
+    if [ "$region" = "auto" ]; then
+        # Auto-detect based on timezone
+        local timezone=$(cat /etc/timezone 2>/dev/null || echo "")
+        if [[ "$timezone" == *"Shanghai"* ]] || [[ "$timezone" == *"Chongqing"* ]] || [[ "$timezone" == *"Asia/China"* ]]; then
+            region="cn"
+        else
+            region="global"
+        fi
+    fi
+    
+    case "$region" in
+        cn|china|CN)
+            PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple"
+            PIP_TRUSTED_HOST="pypi.tuna.tsinghua.edu.cn"
+            REGION_NAME="China (Tsinghua Mirror)"
+            ;;
+        *)
+            PIP_INDEX_URL="https://pypi.org/simple"
+            PIP_TRUSTED_HOST="pypi.org"
+            REGION_NAME="Global (Official PyPI)"
+            ;;
+    esac
+    
+    echo "  Region: $REGION_NAME"
+}
+
+# ─────────────────────────────────────────────
+# Check if dependencies are already installed
+# ─────────────────────────────────────────────
+check_dependencies_installed() {
+    local required_packages=("fastapi" "uvicorn" "pydantic" "jinja2")
+    local all_installed=true
+    
+    for pkg in "${required_packages[@]}"; do
+        if ! $PIP_CMD show "$pkg" &>/dev/null; then
+            all_installed=false
+            break
+        fi
+    done
+    
+    $all_installed
+}
+
+# ─────────────────────────────────────────────
 # 1. Check Python 3
 # ─────────────────────────────────────────────
 if ! command -v python3 &>/dev/null; then
@@ -64,6 +116,9 @@ cd "$SCRIPT_DIR"
 echo ""
 echo "--- Setting up Python environment ---"
 
+# Setup pip mirror
+setup_pip_mirror
+
 USE_VENV=false
 PYTHON_CMD="python3"
 PIP_CMD="pip3"
@@ -87,7 +142,7 @@ fi
 if $USE_VENV; then
     PYTHON_CMD="$VENV_DIR/bin/python"
     PIP_CMD="$VENV_DIR/bin/pip"
-    "$PIP_CMD" install --quiet --upgrade pip
+    "$PIP_CMD" install --quiet --upgrade pip --index-url "$PIP_INDEX_URL" --trusted-host "$PIP_TRUSTED_HOST"
     info "Virtual environment ready"
 else
     # Fallback: use system pip with --break-system-packages (PEP 668 on Ubuntu 24.04+)
@@ -100,12 +155,57 @@ else
     warn "Using system Python (no venv)"
 fi
 
+# ─────────────────────────────────────────────
+# Check if dependencies are already installed
+# ─────────────────────────────────────────────
+check_dependencies_installed() {
+    local required_packages=("fastapi" "uvicorn" "pydantic" "jinja2")
+    local all_installed=true
+    
+    for pkg in "${required_packages[@]}"; do
+        if ! $PIP_CMD show "$pkg" &>/dev/null; then
+            all_installed=false
+            break
+        fi
+    done
+    
+    $all_installed
+}
+
 # Install dependencies
-echo "  Installing dependencies..."
-$PIP_CMD install --quiet -r "$PROJECT_DIR/requirements.txt" \
-    $($USE_VENV || echo "--break-system-packages --user") 2>/dev/null \
-    || $PIP_CMD install --quiet -r "$PROJECT_DIR/requirements.txt"
-info "Dependencies installed"
+echo "  Checking dependencies..."
+if check_dependencies_installed; then
+    info "Dependencies already installed (skipping)"
+else
+    echo "  Installing dependencies..."
+    $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
+        --index-url "$PIP_INDEX_URL" \
+        --trusted-host "$PIP_TRUSTED_HOST" \
+        --timeout 60 \
+        $($USE_VENV || echo "--break-system-packages --user") \
+        || {
+            warn "Installation failed. Trying with alternative mirror..."
+            # If failed, try alternative mirror
+            if [ "$region" = "cn" ]; then
+                echo "  Switching to Aliyun mirror..."
+                $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
+                    --index-url "https://mirrors.aliyun.com/pypi/simple/" \
+                    --trusted-host "mirrors.aliyun.com" \
+                    --timeout 60 \
+                    $($USE_VENV || echo "--break-system-packages --user") \
+                    || fail "Failed to install dependencies"
+            else
+                echo "  Switching to Tsinghua mirror..."
+                $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
+                    --index-url "https://pypi.tuna.tsinghua.edu.cn/simple" \
+                    --trusted-host "pypi.tuna.tsinghua.edu.cn" \
+                    --timeout 60 \
+                    $($USE_VENV || echo "--break-system-packages --user") \
+                    || fail "Failed to install dependencies"
+            fi
+        }
+    info "Dependencies installed"
+fi
 
 # ─────────────────────────────────────────────
 # 4. Make probe scripts executable

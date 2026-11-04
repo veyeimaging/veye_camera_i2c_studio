@@ -60,7 +60,7 @@ class ExecuteRequest(BaseModel):
 
 
 @router.get("/commands/groups")
-def get_command_groups(series: str = Query("gx", regex="^(gx|mv)$")) -> Dict[str, Any]:
+def get_command_groups(series: str = Query("gx", pattern="^(gx|mv)$")) -> Dict[str, Any]:
     """Get all command groups for the specified camera series."""
     service = CommandService(camera_series=series)
     return service.load_groups()
@@ -70,8 +70,8 @@ def get_command_groups(series: str = Query("gx", regex="^(gx|mv)$")) -> Dict[str
 def get_commands(
     group: Optional[str] = None,
     search: Optional[str] = None,
-    lang: str = Query("en", regex="^(en|zh)$"),
-    series: str = Query("gx", regex="^(gx|mv)$"),
+    lang: str = Query("en", pattern="^(en|zh)$"),
+    series: str = Query("gx", pattern="^(gx|mv)$"),
     i2c_bus: Optional[int] = None,
     i2c_addr: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -117,7 +117,7 @@ def get_commands(
 
 
 @router.get("/commands/{command_id}")
-def get_command(command_id: str, series: str = Query("gx", regex="^(gx|mv)$")) -> Dict[str, Any]:
+def get_command(command_id: str, series: str = Query("gx", pattern="^(gx|mv)$")) -> Dict[str, Any]:
     """Get a single command definition."""
     service = CommandService(camera_series=series)
     cmd = service.get_command(command_id)
@@ -171,7 +171,7 @@ def execute_command(command_id: str, request: ExecuteRequest) -> Dict[str, Any]:
 
 
 @router.get("/docs/{command_id}")
-def get_command_docs(command_id: str, series: str = Query("gx", regex="^(gx|mv)$")) -> Dict[str, Any]:
+def get_command_docs(command_id: str, series: str = Query("gx", pattern="^(gx|mv)$")) -> Dict[str, Any]:
     """Get full documentation for a command (merged with register map)."""
     doc_service = DocumentationService(camera_series=series)
     doc = doc_service.get_full_documentation(command_id)
@@ -181,7 +181,7 @@ def get_command_docs(command_id: str, series: str = Query("gx", regex="^(gx|mv)$
 
 
 @router.get("/docs")
-def get_all_registers(series: str = Query("gx", regex="^(gx|mv)$")) -> Dict[str, Any]:
+def get_all_registers(series: str = Query("gx", pattern="^(gx|mv)$")) -> Dict[str, Any]:
     """Get the complete register map."""
     doc_service = DocumentationService(camera_series=series)
     registers = doc_service.get_all_registers()

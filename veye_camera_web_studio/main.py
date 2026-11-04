@@ -144,7 +144,12 @@ def get_config():
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Serve the main application page."""
-    return templates.TemplateResponse("index.html", {"request": request})
+    # Starlette 0.28+ API: use keyword arguments
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={}
+    )
 
 
 @app.get("/health")

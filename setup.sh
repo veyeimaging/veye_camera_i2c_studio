@@ -20,7 +20,7 @@ warn()  { echo -e "${YELLOW}⚠️  $1${NC}"; }
 fail()  { echo -e "${RED}❌ $1${NC}"; exit 1; }
 
 echo "=========================================="
-echo "  VEYE Web Studio - Setup"
+echo "  VEYE Camera I2C Web Studio - Setup"
 echo "=========================================="
 echo ""
 

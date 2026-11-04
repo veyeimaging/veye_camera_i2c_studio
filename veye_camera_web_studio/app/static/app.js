@@ -37,7 +37,7 @@
             "cameraSelect", "platformSelect",
             "camModel", "camVerC", "camVerL", "camSerial", "camI2cBus", "camI2cAddr",
             "camVideoNode", "camMediaNode", "camEntityName",
-            "defaultI2cInfo", "defaultI2cBus", "defaultI2cAddr",
+            "defaultI2cInfo", "manualSeries", "manualI2cBus", "manualI2cAddr", "btnApplyManual",
             "btnRescan",
             "cameraSeriesDisplay", "camSeries",
             "searchInput", "groupsList",
@@ -166,8 +166,48 @@
     }
 
     function updateDefaultI2cDisplay() {
-        dom.defaultI2cBus.textContent = state.defaultConfig.i2c_bus;
-        dom.defaultI2cAddr.textContent = state.defaultConfig.i2c_addr;
+        if (dom.manualSeries) dom.manualSeries.value = state.cameraSeries || "gx";
+        if (dom.manualI2cBus) dom.manualI2cBus.value = state.defaultConfig.i2c_bus;
+        if (dom.manualI2cAddr) dom.manualI2cAddr.value = state.defaultConfig.i2c_addr;
+    }
+
+    function applyManualSettings() {
+        if (!dom.manualSeries || !dom.manualI2cBus || !dom.manualI2cAddr) return;
+        
+        const newSeries = dom.manualSeries.value;
+        const newBus = parseInt(dom.manualI2cBus.value) || 10;
+        const newAddr = dom.manualI2cAddr.value.trim() || "0x3b";
+        
+        // Validate I2C address format
+        let addr = newAddr;
+        if (!addr.startsWith("0x") && !addr.startsWith("0X")) {
+            addr = "0x" + addr;
+        }
+        
+        // Update state
+        state.cameraSeries = newSeries;
+        state.defaultConfig.i2c_bus = newBus;
+        state.defaultConfig.i2c_addr = addr;
+        
+        // Reload groups/commands for the new series
+        state.currentGroup = null;
+        state.currentCommand = null;
+        state.commands = [];
+        loadGroups();
+        showView("welcome");
+        dom.opPanel.style.display = "none";
+        dom.opPlaceholder.style.display = "";
+        
+        // Show success feedback
+        const btnText = dom.btnApplyManual.textContent;
+        dom.btnApplyManual.textContent = "✓";
+        dom.btnApplyManual.disabled = true;
+        setTimeout(() => {
+            dom.btnApplyManual.textContent = btnText;
+            dom.btnApplyManual.disabled = false;
+        }, 1000);
+        
+        console.log(`Manual settings applied: series=${newSeries}, bus=${newBus}, addr=${addr}`);
     }
 
     /**
@@ -1072,6 +1112,11 @@
         dom.btnRescan.addEventListener("click", () => {
             probeCameras();
         });
+
+        // Apply manual settings (when no camera detected)
+        if (dom.btnApplyManual) {
+            dom.btnApplyManual.addEventListener("click", applyManualSettings);
+        }
 
         // Language switch
         $$(".lang-btn").forEach((btn) => {

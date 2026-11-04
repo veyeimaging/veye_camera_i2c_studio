@@ -202,7 +202,7 @@ body {
     border-radius: var(--radius-sm);
     padding: 10px 12px;
     margin-top: 10px;
-    display: flex; flex-direction: column; gap: 6px;
+    display: flex; flex-direction: column; gap: 8px;
 }
 .default-i2c-hint {
     font-size: 11px;
@@ -212,9 +212,44 @@ body {
 }
 .default-i2c-info .info-label {
     color: var(--text-secondary);
+    font-size: 11px;
+    margin-bottom: 2px;
+    display: block;
 }
 .default-i2c-info .info-value {
     color: var(--accent);
+}
+/* Manual input controls */
+.manual-select,
+.manual-input {
+    width: 100%;
+    padding: 6px 8px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 12px;
+    outline: none;
+    transition: var(--transition);
+}
+.manual-select:focus,
+.manual-input:focus {
+    border-color: var(--accent);
+}
+.manual-select {
+    cursor: pointer;
+}
+.manual-input[type="number"] {
+    -moz-appearance: textfield;
+}
+.manual-input::-webkit-outer-spin-button,
+.manual-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+#btnApplyManual {
+    margin-top: 4px;
+    width: 100%;
 }
 
 /* Device Actions */

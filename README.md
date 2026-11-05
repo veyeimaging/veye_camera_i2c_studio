@@ -4,7 +4,7 @@
 
 基于 Web 的 VEYE 相机管理与调试工具。通过浏览器即可对相机进行寄存器级别的读写操作。
 
-> **v0.2.0 版本** — 支持 Jetson、Raspberry Pi 5 和 Rockchip 平台，支持 GX/GXC 系列和 MV/RAW 系列相机。
+> **v0.3.0 版本** — 支持 Jetson、Raspberry Pi 5 和 Rockchip 平台，支持 GX/GXC 系列和 MV/RAW 系列相机。智能安装策略，优先使用预编译包，最大化兼容性。
 
 ## 1. 功能
 
@@ -32,7 +32,7 @@ veye_camera_i2c_studio/
 │   ├── i2c_4read / i2c_4write     # 预编译二进制工具
 │   └── sources/                   # C 语言源码
 ├── veye_camera_web_studio/         # Web 服务主程序
-│   ├── main.py                    # FastAPI 入口 (v0.2.0)
+│   ├── main.py                    # FastAPI 入口 (v0.3.0)
 │   ├── app/
 │   │   ├── adapters/              # 平台适配器
 │   │   │   └── jetson/            # Jetson 平台适配

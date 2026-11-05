@@ -1,5 +1,39 @@
 # Release Log
 
+## v0.3.0 (2026-11-05)
+
+### New Features
+- **Smart Installation Strategy**: Intelligent three-tier fallback mechanism in `setup.sh`
+  - Attempt 1: Prefer pre-compiled wheel packages (fastest, no compilation needed)
+  - Attempt 2: Standard installation with automatic compilation fallback
+  - Attempt 3: Alternative mirror source (Aliyun/Tsinghua based on region)
+  - Ensures maximum compatibility across different platforms and environments
+
+### Improvements
+- **Setup Script Enhancement**: Improved dependency installation reliability
+  - Added `--only-binary=:all:` and `--prefer-binary` for initial attempts
+  - Automatic fallback to compilation if pre-compiled packages unavailable
+  - Better error handling and user feedback during installation
+  - Optimized for resource-constrained devices (Raspberry Pi, etc.)
+
+### Bug Fixes
+- **ARM64 Compilation Issues**: Resolved `httptools` and `uvloop` build failures
+  - Pre-compiled wheels now preferred, avoiding local compilation
+  - Fallback strategy ensures installation success even when wheels unavailable
+  - Tested on Raspberry Pi 5 (aarch64) with Python 3.9
+
+### Technical Details
+- Modified installation commands in `setup.sh`:
+  - Primary: `--only-binary=:all: --prefer-binary`
+  - Secondary: `--no-binary=none` (allow compilation)
+  - Tertiary: Alternative mirror with `--prefer-binary`
+
+### Files Modified
+- `setup.sh` - Added smart installation strategy with three-tier fallback
+- `CHANGELOG.md` - Added v0.3.0 release notes
+
+---
+
 ## v0.2.0 (2026-11-03)
 
 ### New Features

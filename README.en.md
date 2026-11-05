@@ -4,7 +4,7 @@
 
 A web-based tool for managing and debugging VEYE cameras. Perform register-level read/write operations directly from your browser.
 
-> **v0.2.0 Release** — Supports Jetson, Raspberry Pi 5, and Rockchip platforms. Supports both GX/GXC series and MV/RAW series cameras.
+> **v0.3.0 Release** — Supports Jetson, Raspberry Pi 5, and Rockchip platforms. Supports both GX/GXC series and MV/RAW series cameras. Smart installation strategy with maximum compatibility.
 
 ## Features
 
@@ -32,7 +32,7 @@ veye_camera_i2c_studio/
 │   ├── i2c_4read / i2c_4write     # Pre-compiled binary tools
 │   └── sources/                   # C source code
 ├── veye_camera_web_studio/         # Web server main application
-│   ├── main.py                    # FastAPI entry point (v0.2.0)
+│   ├── main.py                    # FastAPI entry point (v0.3.0)
 │   ├── app/
 │   │   ├── adapters/              # Platform adapters
 │   │   │   └── jetson/            # Jetson platform adapter

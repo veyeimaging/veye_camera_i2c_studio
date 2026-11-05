@@ -178,33 +178,55 @@ if check_dependencies_installed; then
     info "Dependencies already installed (skipping)"
 else
     echo "  Installing dependencies..."
-    $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
+    
+    # Try 1: Prefer pre-compiled wheels (faster, no compilation needed)
+    echo "  [Attempt 1/3] Trying pre-compiled packages (recommended)..."
+    if $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
         --index-url "$PIP_INDEX_URL" \
         --trusted-host "$PIP_TRUSTED_HOST" \
         --timeout 60 \
-        $($USE_VENV || echo "--break-system-packages --user") \
-        || {
-            warn "Installation failed. Trying with alternative mirror..."
-            # If failed, try alternative mirror
+        --only-binary=:all: \
+        --prefer-binary \
+        $($USE_VENV || echo "--break-system-packages --user") 2>/dev/null; then
+        info "Dependencies installed (pre-compiled)"
+    else
+        # Try 2: Fallback to normal installation (may compile if needed)
+        warn "Pre-compiled packages not available, trying standard installation..."
+        echo "  [Attempt 2/3] Standard installation with compilation fallback..."
+        if $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
+            --index-url "$PIP_INDEX_URL" \
+            --trusted-host "$PIP_TRUSTED_HOST" \
+            --timeout 60 \
+            --no-binary=none \
+            $($USE_VENV || echo "--break-system-packages --user") 2>/dev/null; then
+            info "Dependencies installed (compiled locally)"
+        else
+            # Try 3: Alternative mirror
+            warn "Standard installation failed, trying alternative mirror..."
+            echo "  [Attempt 3/3] Trying alternative mirror..."
+            
             if [ "$region" = "cn" ]; then
                 echo "  Switching to Aliyun mirror..."
                 $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
                     --index-url "https://mirrors.aliyun.com/pypi/simple/" \
                     --trusted-host "mirrors.aliyun.com" \
                     --timeout 60 \
+                    --prefer-binary \
                     $($USE_VENV || echo "--break-system-packages --user") \
-                    || fail "Failed to install dependencies"
+                    || fail "Failed to install dependencies from Aliyun mirror"
             else
                 echo "  Switching to Tsinghua mirror..."
                 $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
                     --index-url "https://pypi.tuna.tsinghua.edu.cn/simple" \
                     --trusted-host "pypi.tuna.tsinghua.edu.cn" \
                     --timeout 60 \
+                    --prefer-binary \
                     $($USE_VENV || echo "--break-system-packages --user") \
-                    || fail "Failed to install dependencies"
+                    || fail "Failed to install dependencies from Tsinghua mirror"
             fi
-        }
-    info "Dependencies installed"
+            info "Dependencies installed (alternative mirror)"
+        fi
+    fi
 fi
 
 # ─────────────────────────────────────────────

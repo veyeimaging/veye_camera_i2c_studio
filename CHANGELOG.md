@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-11-05
+
+### Added
+- **Smart Installation Strategy**: Intelligent three-tier fallback mechanism in `setup.sh`
+  - Attempt 1: Prefer pre-compiled wheel packages (fastest, no compilation needed)
+  - Attempt 2: Standard installation with automatic compilation fallback
+  - Attempt 3: Alternative mirror source (Aliyun/Tsinghua based on region)
+  - Ensures maximum compatibility across different platforms and environments
+
+### Changed
+- **Setup Script Enhancement**: Improved dependency installation reliability
+  - Added `--only-binary=:all:` and `--prefer-binary` for initial attempts
+  - Automatic fallback to compilation if pre-compiled packages unavailable
+  - Better error handling and user feedback during installation
+  - Optimized for resource-constrained devices (Raspberry Pi, etc.)
+
+### Fixed
+- **ARM64 Compilation Issues**: Resolved `httptools` and `uvloop` build failures
+  - Pre-compiled wheels now preferred, avoiding local compilation
+  - Fallback strategy ensures installation success even when wheels unavailable
+  - Tested on Raspberry Pi 5 (aarch64) with Python 3.9
+
+### Technical Details
+- Modified installation commands in `setup.sh`:
+  - Primary: `--only-binary=:all: --prefer-binary`
+  - Secondary: `--no-binary=none` (allow compilation)
+  - Tertiary: Alternative mirror with `--prefer-binary`
+
+---
+
 ## [0.2.0] - 2026-11-03
 
 ### Added
@@ -153,6 +183,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | Raspberry Pi 4 | ⚠️ Untested | Scripts available, needs validation |
 | Rockchip RK3588 | ✅ Full Support | Tested on Orange Pi CM5 |
 
+[0.3.0]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/yourusername/veye_camera_i2c_studio/releases/tag/v0.1.1

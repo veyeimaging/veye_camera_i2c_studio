@@ -141,12 +141,7 @@ Camera hardware (GX/GXC or MV/RAW series)
   - **Nvidia Jetson** (JetPack 4.x/5.x)
   - **Raspberry Pi 5** (Debian 12+/Bookworm, aarch64)
   - Raspberry Pi 4 (experimental support)
-  - Rockchip RK3588 (experimental support)
-
-**Raspberry Pi 5 additional dependencies:**
-```bash
-sudo apt install media-ctl gawk
-```
+  - **Rockchip RK3588** platform
 
 ### Installation & Launch
 
@@ -161,13 +156,6 @@ python3 main.py
 
 Open `http://localhost:8080` in your browser.
 
-**Note:** On Raspberry Pi 5, if network is slow, you can use a proxy:
-```bash
-# Install dependencies via proxy (optional)
-cd veye_camera_web_studio
-.venv/bin/pip install --proxy=http://<PROXY_IP>:<PORT> -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
-```
-
 ### One-Command Launch
 
 ```bash
@@ -176,8 +164,8 @@ cd veye_camera_web_studio
 
 ## Known Limitations
 
-- **Jetson**, **Raspberry Pi 5**, and **Rockchip** are fully tested
-- Other Raspberry Pi versions and platforms need further validation
+- **Jetson**, **Raspberry Pi 5**, and **Rockchip** platforms are fully tested
+- Raspberry Pi 4 and other platforms need further validation
 - Requires I2C bus access permissions (may need root or proper udev rules)
 - Multiple clients accessing the I2C bus concurrently may cause conflicts
 

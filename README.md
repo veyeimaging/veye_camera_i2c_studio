@@ -141,12 +141,7 @@ i2c_4read / i2c_4write (MV 系列 C 工具)
   - **Nvidia Jetson** (JetPack 4.x/5.x)
   - **Raspberry Pi 5** (Debian 12+/Bookworm, aarch64)
   - Raspberry Pi 4 (实验性支持)
-  - Rockchip RK3588 (实验性支持)
-
-**树莓派5 额外依赖：**
-```bash
-sudo apt install media-ctl gawk
-```
+  - **Rockchip RK3588** 平台
 
 ### 5.2 安装与启动
 
@@ -161,13 +156,6 @@ python3 main.py
 
 浏览器打开 `http://localhost:8080` 即可使用。
 
-**注意：** 在树莓派5上，如果网络较慢，可以使用代理：
-```bash
-# 使用代理安装依赖（可选）
-cd veye_camera_web_studio
-.venv/bin/pip install --proxy=http://<代理IP>:<端口> -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
-```
-
 ### 5.3 一键启动
 
 ```bash
@@ -176,8 +164,8 @@ cd veye_camera_web_studio
 
 ## 6. 已知限制
 
-- **Jetson** 和 **Raspberry Pi 5** 已完全测试
-- Rockchip 平台和其他树莓派版本未经充分验证
+- **Jetson**、**Raspberry Pi 5** 和 **Rockchip** 平台已完全测试
+- Raspberry Pi 4 和其他平台未经充分验证
 - 需要 I2C 总线访问权限（可能需要 root 或正确的 udev 规则）
 - 多客户端并发访问 I2C 总线时可能出现冲突
 

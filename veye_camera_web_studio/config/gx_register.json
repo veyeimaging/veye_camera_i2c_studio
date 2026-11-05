@@ -402,7 +402,7 @@
     {
         "address": "0x047C",
         "name": "day night trigger pin polarity",
-        "description": "The trigger pin polarity is reversed day and night. The default low level indicates night. When this value is set to 1, the high level indicates night.",
+        "description": "(GX-MIPI-IMX662 only) The trigger pin polarity is reversed day and night. The default low level indicates night. When this value is set to 1, the high level indicates night.",
         "data_type": "bool",
         "rd_wt": "RW",
         "update_timing": "A"

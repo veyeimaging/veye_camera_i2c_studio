@@ -5250,8 +5250,8 @@
         "zh": "引脚极性"
       },
       "description": {
-        "en": "Set/get day/night trigger pin polarity. Default: low level = night. Set 1: high level = night.",
-        "zh": "设置/获取日夜触发引脚极性。默认：低电平=夜间。设为 1：高电平=夜间。"
+        "en": "(GX-MIPI-IMX662 only) Set/get day/night trigger pin polarity. Default: low level = night. Set 1: high level = night.",
+        "zh": "(仅GX-MIPI-IMX662) 设置/获取日夜触发引脚极性。默认：低电平=夜间。设为 1：高电平=夜间。"
       },
       "group": "day_night",
       "mode": "rw",

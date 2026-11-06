@@ -240,33 +240,39 @@ read_model()
             ;;
         "49154")
             #GMAX4002
-            MODEL_NAME="GXC-MIPI-GMAX4002"
+            MODEL_NAME="GXC-MIPI-GMAX4002CG"
             export MODEL_NAME
-            printf "Read Model_Name is GXC-MIPI-GMAX4002\n";
+            printf "Read Model_Name is GXC-MIPI-GMAX4002CG\n";
             ;;
         "34101")
-            #SC535HGS
-            MODEL_NAME="GXC-MIPI-SC535HGC"
+            #SC535
+            MODEL_NAME="GXC-MIPI-SC535CG"
             export MODEL_NAME
-            printf "Read Model_Name is GXC-MIPI-SC535HGC\n";
+            printf "Read Model_Name is GXC-MIPI-SC535CG\n";
             ;;
         "33078")
-            #SC136HGS
-            MODEL_NAME="GXC-MIPI-SC136HGC"
+            #SC136
+            MODEL_NAME="GXC-MIPI-SC136CG"
             export MODEL_NAME
-            printf "Read Model_Name is GXC-MIPI-SC136HGC\n";
+            printf "Read Model_Name is GXC-MIPI-SC136CG\n";
             ;;
         "645")
-            #SC285SL
-            MODEL_NAME="GXC-MIPI-SC285SL"
+            #SC285
+            MODEL_NAME="GXC-MIPI-SC285CR"
             export MODEL_NAME
-            printf "Read Model_Name is GXC-MIPI-SC285SL\n";
+            printf "Read Model_Name is GXC-MIPI-SC285CR\n";
             ;;
         "1157")
-            #SC485SL
-            MODEL_NAME="GXC-MIPI-SC485SL"
+            #SC485
+            MODEL_NAME="GXC-MIPI-SC485CR"
             export MODEL_NAME
-            printf "Read Model_Name is GXC-MIPI-SC485SL\n";
+            printf "Read Model_Name is GXC-MIPI-SC485CR\n";
+            ;;
+        "565")
+            #SC235
+            MODEL_NAME="GXC-MIPI-SC235CR"
+            export MODEL_NAME
+            printf "Read Model_Name is GXC-MIPI-SC235CR\n";
             ;;
         *)
             printf "model 0x%08X not recognized\n" "$model"
@@ -307,14 +313,18 @@ read_sensorname()
         #SC136HGS
         printf "Read Sensor_Name is SC136HGS-C\n";
     ;;
-    "645")
-        #SC285SL
-        printf "Read Sensor_Name is SC285SL-C\n";
+    "565")
+        #SC235SL
+        printf "Read Sensor_Name is SC235HAI\n";
     ;;
     "1157")
         #SC485SL
         printf "Read Sensor_Name is SC485SL-C\n";
-    ;;  
+    ;;
+    "645")
+        #SC285SL
+        printf "Read Sensor_Name is SC285SL-C\n";
+    ;;
     *)
      printf " model %8x not recognized\n" $model;
      ;;
@@ -550,6 +560,14 @@ write_imgacq()
     local acq=$1;
 	i2c_write $Image_Acquisition "$acq"
     printf "Write Image_Acquisition is %d \n" "$acq";
+}
+
+read_imgacq()
+{
+    local acq=0;
+    typeset -i acq;
+	acq=$(i2c_read $Image_Acquisition);
+    printf "Read Image_Acquisition is %d \n" "$acq";
 }
 
 read_workmode()

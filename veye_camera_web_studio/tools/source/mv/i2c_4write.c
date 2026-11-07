@@ -5,16 +5,49 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
+#include <sys/file.h>
 #include <unistd.h>
 
 #include "i2c_4comm.h"
 
 #define I2C_DEVICE_NAME_LEN 13	// "/dev/i2c-XXX"+NULL
+#define I2C_LOCK_PATH_TEMPLATE "/tmp/i2c-%d.lock"
 static char i2c_device_name[I2C_DEVICE_NAME_LEN];
+
+// 获取 I2C 总线锁
+static int acquire_i2c_lock(uint32_t bus_num, int *lock_fd) {
+    char lock_path[32];
+    snprintf(lock_path, sizeof(lock_path), I2C_LOCK_PATH_TEMPLATE, bus_num);
+    
+    *lock_fd = open(lock_path, O_CREAT | O_RDWR, 0666);
+    if (*lock_fd < 0) {
+        fprintf(stderr, "Failed to open lock file %s: %s\n", lock_path, strerror(errno));
+        return -1;
+    }
+    
+    // 获取排他锁（阻塞等待）
+    if (flock(*lock_fd, LOCK_EX) < 0) {
+        fprintf(stderr, "Failed to acquire lock %s: %s\n", lock_path, strerror(errno));
+        close(*lock_fd);
+        *lock_fd = -1;
+        return -1;
+    }
+    
+    return 0;
+}
+
+// 释放 I2C 总线锁
+static void release_i2c_lock(int lock_fd) {
+    if (lock_fd >= 0) {
+        flock(lock_fd, LOCK_UN);
+        close(lock_fd);
+    }
+}
 
 void send_regs(int fd,  const struct sensor_regs *regs, int num_regs)
 {
@@ -42,6 +75,8 @@ int main(int argc, char *argv[])
 	U32 new_data;
 	//U32 value;
 	struct sensor_regs regs;
+	int lock_fd = -1;
+
 	if (argc < 5)
 	{
 		printf("usage: %s <bus_num> <device address 8bits> <register address 32bits> <value>. sample: %s 0x0 0xA0 0x10 0x40\n", argv[0], argv[0]);
@@ -73,16 +108,24 @@ int main(int argc, char *argv[])
 	snprintf(i2c_device_name, sizeof(i2c_device_name), "/dev/i2c-%d", I2C_port);
 	//printf("Using i2C device %s\n", i2c_device_name);
 	
+	// 1. 先获取锁
+	if (acquire_i2c_lock(I2C_port, &lock_fd) < 0) {
+		return -1;
+	}
+
 	int fd;
 	fd = open(i2c_device_name, O_RDWR);
 	if (!fd)
 	{
 		printf("Couldn't open I2C device\n");
+		release_i2c_lock(lock_fd);
 		return -1;
 	}
 	if (ioctl(fd, I2C_SLAVE_FORCE, device_addr) < 0)
 	{
 		printf("Failed to set I2C address\n");
+		close(fd);
+		release_i2c_lock(lock_fd);
 		return -1;
 	}
 	regs.reg = reg_addr;
@@ -90,6 +133,9 @@ int main(int argc, char *argv[])
 	
 	send_regs(fd, &regs, 1);
 	close(fd);
+
+	// 2. 操作完成后释放锁
+	release_i2c_lock(lock_fd);
 	
 	return 0;
 

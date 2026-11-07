@@ -1,5 +1,41 @@
 # Release Log
 
+## v0.3.1 (2026-11-07)
+
+### New Features
+- **Trigger & Sync Page Workmode Filtering**: Automatically filter displayed registers based on current work mode
+  - Reads current workmode on page entry and shows a banner indicator
+  - Video Streaming mode: Only shows workmode register
+  - Trigger mode: Hides slavemode register
+  - Pulse Trigger mode: Hides slavemode, trigger delay, trigger interval, and trigger frame count
+  - Multi-camera Sync mode: Only shows workmode and slavemode registers
+  - Auto-refreshes the command list when workmode is changed
+  - Supports both GX and MV series
+
+### Improvements
+- **Slow Shutter Command Overhaul**:
+  - Renamed parameter 1 from "Enable" to "Mode" (Fixed Frame Rate / Auto Frame Reduction)
+  - Removed gain threshold parameter max limit (was 409.5 dB, now unlimited)
+  - Updated documentation with comprehensive feature description
+  - Notes now support multi-line display
+- **Workmode Naming**: Renamed "脉冲触发" to "电平触发" (Pulse Trigger Mode) for mode 3
+- **Slow Shutter Read Display**: Fixed gain threshold display — now shows correct dB value instead of raw register value
+
+### Bug Fixes
+- Setting gain threshold to values above 409.5 no longer fails
+- Reading after writing 600 dB now correctly displays 600 dB (was showing 6000)
+- After reading slowshutter, input field correctly populates with converted value
+
+### Files Modified
+- `app/static/app.js` — Trigger/sync filtering, workmode banner, slowshutter display fix
+- `app/static/style.css` — Notes line-break support, workmode banner styles
+- `config/gx_commands.json` — Updated slowshutter and workmode definitions
+- `scripts/generate_commands.py` — Updated slowshutter and workmode source definitions
+- `main.py` — Version bump to 0.3.1
+- `app/templates/index.html` — Version display and cache busting update
+
+---
+
 ## v0.3.0 (2026-11-05)
 
 ### New Features

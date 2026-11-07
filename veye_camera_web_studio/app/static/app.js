@@ -385,10 +385,121 @@
                 oldSummary.remove();
             }
 
-            renderCommandCards(state.commands, dom.commandCards);
+            // For trigger_sync group: read current workmode and filter commands
+            if (groupId === "trigger_sync") {
+                await filterTriggerSyncByWorkmode();
+            } else {
+                renderCommandCards(state.commands, dom.commandCards);
+            }
         } catch (e) {
             console.error("Failed to load commands:", e);
         }
+    }
+
+    // ========== Trigger & Sync workmode filtering ==========
+    async function readCurrentWorkmode() {
+        const i2c = getEffectiveI2c();
+        // GX uses "workmode", MV uses "trgmode"
+        const cmdId = state.cameraSeries === "mv" ? "trgmode" : "workmode";
+        const body = {
+            command_id: cmdId,
+            i2c_bus: i2c.bus,
+            i2c_addr: i2c.addr,
+            params: [],
+            timeout: 5,
+            action: "read",
+            series: state.cameraSeries,
+        };
+        try {
+            const data = await apiPost(`/api/commands/${cmdId}/execute`, body);
+            if (data.success && data.read_values && data.read_values.length > 0) {
+                return data.read_values[0];
+            }
+        } catch (e) {
+            console.warn("Failed to read workmode:", e);
+        }
+        return null;
+    }
+
+    function filterTriggerSyncCommands(commands, workmode) {
+        if (workmode === null || workmode === undefined) return commands;
+
+        if (state.cameraSeries === "mv") {
+            // MV series: 0=Stream, 1=Normal trigger, 2=Rolling shutter multi-frame, 3=Pulse/Level trigger
+            switch (workmode) {
+                case 0: // Video streaming - hide all except trgmode
+                    return commands.filter(c => c.id === "trgmode");
+                case 3: // Level trigger - hide slavemode, trgdelay, trginterval, trgnum
+                    return commands.filter(c => !["slavemode", "trgdelay", "trginterval", "trgnum"].includes(c.id));
+                default: // Normal trigger (1), Rolling shutter (2) - hide slavemode
+                    return commands.filter(c => c.id !== "slavemode");
+            }
+        } else {
+            // GX series: 0=Stream, 1=Trigger, 3=Level trigger, 4=Multi-camera sync
+            switch (workmode) {
+                case 0: // Video streaming - hide all except workmode
+                    return commands.filter(c => c.id === "workmode");
+                case 4: // Multi-camera sync - only show workmode + slavemode
+                    return commands.filter(c => ["workmode", "slavemode"].includes(c.id));
+                case 3: // Level trigger - hide slavemode, trgdelay, trginterval, trgnum
+                    return commands.filter(c => !["slavemode", "trgdelay", "trginterval", "trgnum"].includes(c.id));
+                case 1: // Normal trigger - hide slavemode
+                default:
+                    return commands.filter(c => c.id !== "slavemode");
+            }
+        }
+    }
+
+    function getWorkmodeLabel(workmode) {
+        const lang = state.lang || 'en';
+        if (state.cameraSeries === "mv") {
+            const labels = {
+                0: lang === 'zh' ? '视频流' : 'Video Streaming',
+                1: lang === 'zh' ? '普通触发' : 'Normal Trigger',
+                2: lang === 'zh' ? '卷帘多帧' : 'Rolling Shutter Multi-frame',
+                3: lang === 'zh' ? '电平触发' : 'Pulse Trigger Mode',
+            };
+            return labels[workmode] || `Mode ${workmode}`;
+        } else {
+            const labels = {
+                0: lang === 'zh' ? '视频流' : 'Video Streaming',
+                1: lang === 'zh' ? '触发' : 'Trigger',
+                3: lang === 'zh' ? '电平触发' : 'Pulse Trigger Mode',
+                4: lang === 'zh' ? '多机同步' : 'Multi-camera Sync',
+            };
+            return labels[workmode] || `Mode ${workmode}`;
+        }
+    }
+
+    function renderWorkmodeBanner(workmode) {
+        // Remove existing banner
+        const oldBanner = document.querySelector(".workmode-banner");
+        if (oldBanner) oldBanner.remove();
+
+        if (workmode === null) return;
+
+        const lang = state.lang || 'en';
+        const modeLabel = lang === 'zh' ? '当前工作模式' : 'Current Work Mode';
+        const modeName = getWorkmodeLabel(workmode);
+
+        const banner = document.createElement("div");
+        banner.className = "workmode-banner";
+        banner.innerHTML = `<span class="workmode-banner-label">${modeLabel}:</span> <span class="workmode-banner-value">${modeName}</span>`;
+
+        // Insert after group description
+        dom.groupDescription.insertAdjacentElement("afterend", banner);
+    }
+
+    async function filterTriggerSyncByWorkmode() {
+        // Remove old banner
+        const oldBanner = document.querySelector(".workmode-banner");
+        if (oldBanner) oldBanner.remove();
+
+        const workmode = await readCurrentWorkmode();
+        renderWorkmodeBanner(workmode);
+
+        const filtered = filterTriggerSyncCommands(state.commands, workmode);
+        renderCommandCards(filtered, dom.commandCards);
     }
 
     function renderVideoModeSummary(info) {
@@ -802,6 +913,13 @@
                 populateParamsFromRead(data.read_values, cmd);
             }
 
+            // After workmode/trgmode write: refresh trigger_sync group to re-filter commands
+            if (data.success && body.action === "write" && (body.command_id === "workmode" || body.command_id === "trgmode")) {
+                if (state.currentGroup === "trigger_sync") {
+                    await filterTriggerSyncByWorkmode();
+                }
+            }
+
         } catch (e) {
             dom.opResult.innerHTML = `<div class="result-error">❌ ${e.message}</div>`;
         } finally {
@@ -836,8 +954,12 @@
                 // Numeric: apply inverse transform to get user-facing value
                 let num = typeof val === "number" ? val : parseInt(val, 10);
                 if (!isNaN(num)) {
+                    // Special handling for slowshutter: second param is gain threshold * 10
+                    if (cmd.id === "slowshutter" && i === 1) {
+                        num = num / 10;
+                    }
                     // If there's a read transform, use it; otherwise invert the write transform
-                    if (readTransform) {
+                    else if (readTransform) {
                         num = applyTransform(num, readTransform);
                     } else if (writeTransform) {
                         num = applyInverseTransform(num, writeTransform);
@@ -948,6 +1070,33 @@
                             <div class="result-value">
                                 <span class="result-label">Min</span>
                                 <span class="result-data">${minLabel}: ${us} μs${us >= 1000 ? ` (${(us/1000).toFixed(3)} ms)` : ''}</span>
+                            </div>`;
+                        }
+                    }
+                    // Special handling for slow shutter command
+                    else if (cmd && cmd.id === "slowshutter") {
+                        const lang = state.lang || 'en';
+                        const modeLabel = lang === 'zh' ? '模式' : 'Mode';
+                        const gainLabel = lang === 'zh' ? '增益阈值' : 'Gain Threshold';
+                        const modeNames = {
+                            0: lang === 'zh' ? '固定帧率模式' : 'Fixed frame rate mode',
+                            1: lang === 'zh' ? '自动降帧模式' : 'Auto frame reduction mode'
+                        };
+                        if (i === 0) {
+                            // R0 = 0x0CBC = Mode (0 or 1)
+                            const modeName = modeNames[num] || String(num);
+                            html += `
+                            <div class="result-value">
+                                <span class="result-label">${modeLabel}</span>
+                                <span class="result-data">${modeName} (${num})</span>
+                            </div>`;
+                        } else if (i === 1) {
+                            // R1 = 0x0CC0 = Gain threshold * 10 (unit: 0.1 dB)
+                            const gainDb = num / 10;
+                            html += `
+                            <div class="result-value">
+                                <span class="result-label">${gainLabel}</span>
+                                <span class="result-data">${gainDb} dB (raw: ${num})</span>
                             </div>`;
                         }
                     }

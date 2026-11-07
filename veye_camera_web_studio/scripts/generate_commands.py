@@ -390,17 +390,17 @@ commands.append(cmd("antiflicker", "Anti-flicker", "防闪烁",
     notes_zh="写入两个寄存器：0x0C94（使能）和 0x0C98（频率）。"))
 
 commands.append(cmd("slowshutter", "Slow Shutter", "慢快门",
-    "Set/get slow shutter enable and gain threshold. Only effective in auto exposure + video stream mode. Gain threshold unit: 0.1 dB.",
-    "设置/获取慢快门使能和增益阈值。仅在自动曝光 + 视频流模式下生效。增益阈值单位：0.1 dB。",
+    "Controls the camera exposure and frame rate strategy in low-light environments. Supports auto frame reduction mode and fixed frame rate mode.",
+    "控制相机在低照度环境下的曝光与帧率调节策略，支持自动降帧模式与固定帧率模式。",
     "exposure_gain", "rw", "low", "0x0CBC",
     params=[
-        enum_param("Enable", "使能", "Slow shutter enable", "慢快门使能",
-            [{"value": 0, "label": {"en": "Disable", "zh": "禁用"}},
-             {"value": 1, "label": {"en": "Enable", "zh": "启用"}}]),
-        float_param("Gain Threshold", "增益阈值", "Gain threshold for auto frame reduction", "自动降帧增益阈值", 0, 409.5, 0.1, unit="dB")
+        enum_param("Mode", "模式", "Slow shutter mode selection", "慢快门模式选择",
+            [{"value": 0, "label": {"en": "Fixed frame rate mode", "zh": "固定帧率模式"}},
+             {"value": 1, "label": {"en": "Auto frame reduction mode", "zh": "自动降帧模式"}}]),
+        float_param("Gain Threshold", "增益阈值", "Gain threshold (unit: 0.1 dB) that triggers frame reduction in auto mode. E.g. input 20 means 2.0 dB", "自动降帧模式下触发降帧行为的增益阈值（单位：0.1 dB）。例如输入 20 即代表 2.0 dB", 0, None, 0.1, unit="dB")
     ],
-    notes_en="Writes two registers: 0x0CBC (enable) and 0x0CC0 (gain threshold * 10). When using slow shutter, set aemaxtime=1000000 first.",
-    notes_zh="写入两个寄存器：0x0CBC（使能）和 0x0CC0（增益阈值 * 10）。使用慢快门时需先设置 aemaxtime=1000000。"))
+    notes_en="Auto frame reduction mode is an extended strategy in auto exposure (AE) designed to prioritize image brightness and signal-to-noise ratio in low-light environments.\n\nIn this mode, as ambient brightness decreases, the AE adjustment follows this strategy:\n1. While maintaining frame rate, prioritize increasing exposure time to improve image brightness and minimize gain, thereby reducing noise.\n2. When exposure time reaches the upper limit allowed by the current frame rate, begin increasing gain. When the gain reaches the user-set maximum (aemaxgain): the system gradually reduces the frame rate to further extend exposure time.\n3. This process continues until the exposure time reaches the maximum exposure time allowed by auto exposure (aemaxtime).\n\nAuto frame reduction mode can effectively reduce image noise and improve brightness and image quality in low-light environments.\n\nNote: Auto frame reduction mode only takes effect in auto exposure + video stream mode. It needs to be used together with the max exposure time parameter (aemaxtime).\n\nIn contrast, fixed frame rate mode means the frame rate remains unchanged during auto exposure adjustment.\n\nWrites two registers: 0x0CBC (mode) and 0x0CC0 (gain threshold * 10).",
+    notes_zh="自动降帧模式是自动曝光（AE）中的一种扩展策略，用于在低照度环境下优先保证图像亮度和信噪比。\n\n在该模式下，随着环境亮度变低，AE 调节遵循以下策略：\n1. 保证帧率前提下，优先增加曝光时间，以提升图像亮度并尽量降低增益，从而减少噪声；\n2. 当曝光时间达到当前帧率允许的上限，开始提升增益，当增益已达到用户设定的最大值（aemaxgain）时：系统将逐步降低帧率，进一步延长曝光时间；\n3. 该过程持续进行，直到曝光时间达到自动曝光允许的最大曝光时间（aemaxtime）为止。\n\n自动降帧模式，在低照度环境下可有效降低图像噪声，提高画面亮度和图像质量。\n\n注意：自动降帧模式仅在自动曝光模式 + 视频流模式下有效。使用功能使用时，需要最大曝光时间（aemaxtime）配合使用。\n\n相对的，固定帧率模式是指自动曝光调节时保持帧率不变。\n\n写入两个寄存器：0x0CBC（模式）和 0x0CC0（增益阈值 * 10）。"))
 
 commands.append(cmd("aeweight", "AE Weight", "AE 区域权重",
     "Set/get AE region weighting. 0=Center-priority, 1=Bottom-priority, 2=Top-priority.",
@@ -556,14 +556,14 @@ commands.append(cmd("scene_custom", "Scene Custom", "自定义场景",
 
 # ==================== B8. Trigger & Synchronization ====================
 commands.append(cmd("workmode", "Work Mode", "工作模式",
-    "Set/get work mode. 0=Video streaming, 1=Trigger, 3=Pulse trigger (hardware only), 4=Multi-camera sync. Requires stopping acquisition first.",
-    "设置/获取工作模式。0=视频流, 1=触发, 3=脉冲触发(仅硬件), 4=多机同步。需先停止采集。",
+    "Set/get work mode. 0=Video streaming, 1=Trigger, 3=Pulse trigger mode (hardware only), 4=Multi-camera sync. Requires stopping acquisition first.",
+    "设置/获取工作模式。0=视频流, 1=触发, 3=电平触发(仅硬件), 4=多机同步。需先停止采集。",
     "trigger_sync", "rw", "medium", "0x0404",
     update_timing="S",
     params=[enum_param("Mode", "模式", "Work mode", "工作模式",
         [{"value": 0, "label": {"en": "Video Streaming", "zh": "视频流"}},
          {"value": 1, "label": {"en": "Trigger", "zh": "触发"}},
-         {"value": 3, "label": {"en": "Pulse Trigger", "zh": "脉冲触发"}},
+         {"value": 3, "label": {"en": "Pulse Trigger Mode", "zh": "电平触发"}},
          {"value": 4, "label": {"en": "Multi-camera Sync", "zh": "多机同步"}}])]))
 
 commands.append(cmd("trgsrc", "Trigger Source", "触发源",

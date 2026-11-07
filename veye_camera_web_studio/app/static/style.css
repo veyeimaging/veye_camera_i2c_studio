@@ -461,6 +461,7 @@ body {
     line-height: 1.5;
     margin: 0;
     font-style: italic;
+    white-space: pre-wrap;
 }
 
 /* View Header */
@@ -876,4 +877,24 @@ body {
     color: var(--text-secondary);
     margin: 0;
     line-height: 1.5;
+}
+
+/* Workmode banner for trigger_sync group */
+.workmode-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+}
+.workmode-banner-label {
+    font-weight: 500;
+}
+.workmode-banner-value {
+    font-weight: 600;
+    color: var(--accent);
 }

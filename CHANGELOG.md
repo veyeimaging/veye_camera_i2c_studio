@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-11-07
+
+### Added
+- **Trigger & Sync Page Workmode Filtering**: Automatically filter displayed registers based on current work mode
+  - Reads current workmode on page entry and shows a banner indicator
+  - **Video Streaming mode (0)**: Only shows workmode register
+  - **Trigger mode (1)**: Hides slavemode register
+  - **Pulse Trigger mode (3)**: Hides slavemode, trigger delay, trigger interval, and trigger frame count
+  - **Multi-camera Sync mode (4)**: Only shows workmode and slavemode registers
+  - Auto-refreshes the command list when workmode is changed
+  - Supports both GX and MV series with mode-specific filtering logic
+
+### Changed
+- **Slow Shutter Command Overhaul**:
+  - Renamed parameter 1 from "Enable" (Disable/Enable) to "Mode" (Fixed Frame Rate / Auto Frame Reduction)
+  - Removed gain threshold parameter max limit (was 409.5 dB, now unlimited)
+  - Updated documentation with comprehensive feature description including AE strategy details
+  - Added register info (0x0CBC, 0x0CC0) back to notes
+  - Notes now support multi-line display (`white-space: pre-wrap`)
+- **Workmode Naming**: Renamed "脉冲触发" (Pulse Trigger) to "电平触发" (Pulse Trigger Mode) for mode 3
+- **Slow Shutter Read Display**: Fixed gain threshold display — now shows correct dB value (register / 10) instead of raw register value
+
+### Fixed
+- **Slow Shutter Parameter Validation**: Setting gain threshold to values above 409.5 no longer fails
+- **Slow Shutter Read-back**: Reading after writing 600 dB now correctly displays 600 dB (was showing 6000)
+- **Parameter Population**: After reading slowshutter, input field correctly populates with 600 instead of raw value 6000
+
+### Files Modified
+- `veye_camera_web_studio/app/static/app.js` — Added trigger_sync filtering, workmode banner, slowshutter display fix
+- `veye_camera_web_studio/app/static/style.css` — Added `white-space: pre-wrap` for notes, workmode banner styles
+- `veye_camera_web_studio/config/gx_commands.json` — Updated slowshutter and workmode definitions
+- `veye_camera_web_studio/scripts/generate_commands.py` — Updated slowshutter and workmode source definitions
+- `veye_camera_web_studio/main.py` — Version bump to 0.3.1
+- `veye_camera_web_studio/app/templates/index.html` — Version display and cache busting update
+
+---
+
 ## [0.3.0] - 2026-11-05
 
 ### Added
@@ -183,6 +220,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | Raspberry Pi 4 | ⚠️ Untested | Scripts available, needs validation |
 | Rockchip RK3588 | ✅ Full Support | Tested on Orange Pi CM5 |
 
+[0.3.1]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.1.2...v0.1.3

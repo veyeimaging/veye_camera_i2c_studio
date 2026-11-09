@@ -1100,18 +1100,29 @@
                             </div>`;
                         }
                     }
-                    // Special handling for sensor register indirect read
+                    // Special handling for sensor register read
                     else if (cmd && cmd.id === "snsreg") {
                         const lang = state.lang || 'en';
-                        // 0x0454: highest bit (bit 31) indicates read completion
-                        const ready = (num & 0x80000000) !== 0;
-                        const actualValue = num & 0x7FFFFFFF; // Mask out bit 31
+                        const statusLabel = lang === 'zh' ? '状态' : 'Status';
+                        const regValueLabel = lang === 'zh' ? '传感器寄存器值' : 'Sensor Register Value';
+
+                        let ready, actualValue;
+                        if (state.cameraSeries === 'mv') {
+                            // MV/RAW series: indirect access (write addr to 0x0450, read from 0x0454).
+                            // Bit 31 of the read value is the read-completion flag; mask it out for the value.
+                            ready = (num & 0x80000000) !== 0;
+                            actualValue = num & 0x7FFFFFFF;
+                        } else {
+                            // GX series: the sensor register is read directly (reg_type=sensor) and the
+                            // returned value is the raw register value with no completion-flag bit, so a
+                            // successful read is always complete.
+                            ready = true;
+                            actualValue = num >>> 0;
+                        }
+
                         const hex = "0x" + actualValue.toString(16).toUpperCase().padStart(8, "0");
                         const dec = actualValue.toString(10);
-                        
-                        const statusLabel = lang === 'zh' ? '状态' : 'Status';
                         const readyText = lang === 'zh' ? (ready ? '✅ 读取完成' : '⏳ 读取未完成') : (ready ? '✅ Read Complete' : '⏳ Read Incomplete');
-                        const regValueLabel = lang === 'zh' ? '传感器寄存器值' : 'Sensor Register Value';
                         
                         html += `
                         <div class="result-value">

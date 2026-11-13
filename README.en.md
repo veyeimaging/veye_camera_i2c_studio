@@ -4,7 +4,7 @@
 
 A web-based tool for managing and debugging VEYE cameras. Perform register-level read/write operations directly from your browser.
 
-> **v0.3.0 Release** — Supports Jetson, Raspberry Pi 5, and Rockchip platforms. Supports both GX/GXC series and MV/RAW series cameras. Smart installation strategy with maximum compatibility.
+> **v0.4.1 Release** — Supports Jetson, Raspberry Pi 5, and Rockchip platforms. Supports both GX/GXC series and MV/RAW series cameras. Live preview in the browser (MJPEG over HTTP), using the hardware JPEG encoder automatically on Rockchip. Smart installation strategy with maximum compatibility.
 
 ## Features
 
@@ -16,6 +16,9 @@ A web-based tool for managing and debugging VEYE cameras. Perform register-level
 - Bilingual interface (English / Chinese)
 - Dark / light theme toggle
 - Automatic feature filtering based on camera series (e.g., trigger modes)
+- Live preview (MJPEG over HTTP): GX/GXC (UYVY) and MV/RAW (GREY) viewable directly in the browser, with resolution / framerate / ROI / quality controls prefilled from the camera's current configuration
+- Per-platform automatic JPEG encoder selection: hardware `mppjpegenc` on Rockchip (dmabuf straight into the encoder, no color convert), the portable software path on Jetson / Raspberry Pi; `encoder` can force the CPU encoder for comparison
+- Visible preview failures: a failed start returns the real GStreamer reason at once, an unexpected process exit flips the stream to `error` with that reason, and the frontend stops polling a dead stream
 
 ## Project Structure
 
@@ -32,25 +35,34 @@ veye_camera_i2c_studio/
 │   ├── i2c_4read / i2c_4write     # Pre-compiled binary tools
 │   └── sources/                   # C source code
 ├── veye_camera_web_studio/         # Web server main application
-│   ├── main.py                    # FastAPI entry point (v0.3.0)
+│   ├── main.py                    # FastAPI entry point (v0.4.1)
 │   ├── app/
 │   │   ├── adapters/              # Platform adapters
 │   │   │   └── jetson/            # Jetson platform adapter
 │   │   ├── api/                   # API routes
 │   │   │   ├── devices.py         # Camera probe & series detection
-│   │   │   └── commands.py        # Register command execution
+│   │   │   ├── commands.py        # Register command execution
+│   │   │   └── stream.py          # Live preview API (/api/stream)
 │   │   ├── services/              # Business logic layer
 │   │   │   ├── command_service.py     # Register read/write execution
 │   │   │   ├── probe_service.py       # Camera probe & series detection
+│   │   │   ├── stream_service.py      # Preview pipeline lifecycle / device ownership / fps metering
 │   │   │   ├── documentation_service.py # Documentation service
 │   │   │   ├── system_service.py      # System information
 │   │   │   └── log_service.py         # Operation logs
+│   │   ├── streaming/             # Four-layer live preview subsystem
+│   │   │   ├── profile.py         # Pipeline parameters (caps, encoder choice)
+│   │   │   ├── pipeline.py        # gst-launch argv assembly
+│   │   │   ├── configurators/     # Stage 0: per-platform media-ctl / I2C setup
+│   │   │   ├── providers/         # Stage 1: color conversion + hardware encoder selection
+│   │   │   └── transports/        # Stage 2: MJPEG multipart delivery
 │   │   ├── static/                # Frontend static files
 │   │   │   ├── app.js
 │   │   │   ├── style.css
 │   │   │   └── logo*.png
 │   │   └── templates/             # HTML templates
-│   │       └── index.html
+│   │       ├── index.html
+│   │       └── preview.html       # Popup preview page (MJPEG consumer)
 │   ├── config/                    # Configuration files
 │   │   ├── gx_commands.json       # GX series 108 command definitions
 │   │   ├── gx_command_groups.json # GX command groups
@@ -130,6 +142,8 @@ Camera hardware (GX/GXC or MV/RAW series)
 - **Frontend**: Vanilla JavaScript, no framework dependencies
 - **Hardware communication**: Direct I2C bus access via compiled binary tools
 - **Series detection**: Automatic camera series detection via sysfs (GX or MV/RAW)
+- **Live preview**: GStreamer capture → MJPEG multipart → HTTP streaming response, rendered by a plain browser `<img>`; nothing is written to disk
+- **Preview layering** (`app/streaming/`): Stage 0 Configurator (media-ctl / I2C setup) → Stage 1 Provider (color conversion and encoder choice) → Stage 2 Transport (MJPEG muxing/delivery) → Stage 3 StreamService (pipeline lifecycle, exclusive capture-node ownership, teardown when the consumer leaves)
 
 ## Quick Start
 
@@ -137,6 +151,7 @@ Camera hardware (GX/GXC or MV/RAW series)
 
 - Python 3.8+
 - GCC (for compiling I2C tools, only needed if pre-compiled packages unavailable)
+- Live preview dependencies: GStreamer 1.0 (base / good plugins) and v4l-utils, installed automatically by `setup.sh` (warns instead of aborting when `sudo` is unavailable). Hardware JPEG encoding on Rockchip additionally requires `gstreamer1.0-rockchip1` (provides `mppjpegenc`); without it the software encoder is used automatically
 - Supported platforms:
   - **Nvidia Jetson** (JetPack 4.x/5.x)
   - **Raspberry Pi 5** (Debian 12+/Bookworm, aarch64)
@@ -164,10 +179,14 @@ Open `http://localhost:8080` in your browser.
 
 ## Known Limitations
 
-- **Jetson**, **Raspberry Pi 5**, and **Rockchip** platforms are fully tested
+- **Jetson**, **Raspberry Pi 5**, and **Rockchip** platforms are fully tested (including live preview)
 - Raspberry Pi 4 and other platforms need further validation
 - Requires I2C bus access permissions (may need root or proper udev rules)
 - Multiple clients accessing the I2C bus concurrently may cause conflicts
+- Live preview allows one consumer per capture node at a time (the popup page takes precedence); the pipeline is torn down as soon as the consumer disconnects
+- 1080p software encoding tops out near 30 fps (`videoconvert` and `jpegenc` are both single-threaded); the Rockchip hardware path reaches ~54 fps at quality 60 but only ~31 fps at quality 85, because at higher quality the bottleneck moves to "byte read-out → HTTP delivery" (~4 MB/s)
+- Rockchip `rkcif` lists only 1-30 fps in `VIDIOC_ENUM_FRAMEINTERVALS` (an `S_FMT` restriction, not a transport limit); the capture caps no longer carry `framerate` - frame rate comes from the I2C 0x0850 register and the media-ctl pad - so entering the camera's nominal maximum (e.g. 60) in the preview form is correct
+- In dark scenes AE extends exposure (slow shutter), so the sensor delivers fewer frames than requested; that drop is not a software issue. Compare `v4l2-ctl -d /dev/videoXX --stream-mmap` against the UI's `measured_fps` to tell the camera side from the encode side
 
 ## Platform Compatibility
 
@@ -176,7 +195,7 @@ Open `http://localhost:8080` in your browser.
 | Nvidia Jetson | ✅ Full Support | Original development platform |
 | Raspberry Pi 5 | ✅ Full Support | Tested with Debian 13 / aarch64 |
 | Raspberry Pi 4 | ⚠️ Experimental | Scripts included, needs validation |
-| Rockchip RK3588 | ✅ Full Support | Tested on Orange Pi CM5 |
+| Rockchip RK3588 | ✅ Full Support | Tested on Orange Pi CM5; hardware MJPEG needs `gstreamer1.0-rockchip1` |
 
 ## Changelog
 

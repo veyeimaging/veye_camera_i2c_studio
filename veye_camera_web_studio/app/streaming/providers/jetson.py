@@ -15,6 +15,10 @@ class JetsonProvider(StreamProvider):
     }
 
     def capture_to_encoder_tokens(self, profile: StreamProfile) -> List[str]:
+        # A hardware JPEG encoder (none enabled for Jetson yet) consumes the
+        # converter's job entirely, so contribute nothing in that case.
+        if not self.needs_cpu_convert(profile):
+            return []
         # nvvidconv moves the VI (often NVMM/MPLANE) buffer into sysmem I420
         # that jpegenc can consume on the CPU.  Fall back to videoconvert when
         # the L4T gstreamer plugins are unavailable.

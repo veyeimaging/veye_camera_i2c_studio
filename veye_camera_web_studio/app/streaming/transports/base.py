@@ -17,8 +17,13 @@ class StreamTransport:
     # HTTP media type for the delivery endpoint (MJPEG uses multipart replace).
     media_type: str = "application/octet-stream"
 
-    def sink_tokens(self, profile: StreamProfile) -> List[str]:
-        """Tokens appended after the provider's ``...video/x-raw,format=I420``.
+    def sink_tokens(self, profile: StreamProfile, provider=None) -> List[str]:
+        """Tokens appended after the provider's capture/convert stage.
+
+        ``provider`` (Stage 1) is passed when available because *which* encoder
+        element runs is a platform capability, while turning its output into a
+        delivered byte stream is this transport's job.  A transport must still work
+        without a provider, falling back to its portable default.
 
         Must end with ``filesink location=/dev/stdout`` so StreamService can read
         the multiplexed byte stream from the subprocess stdout.

@@ -4,7 +4,7 @@
 
 基于 Web 的 VEYE 相机管理与调试工具。通过浏览器即可对相机进行寄存器级别的读写操作。
 
-> **v0.3.0 版本** — 支持 Jetson、Raspberry Pi 5 和 Rockchip 平台，支持 GX/GXC 系列和 MV/RAW 系列相机。智能安装策略，优先使用预编译包，最大化兼容性。
+> **v0.4.1 版本** — 支持 Jetson、Raspberry Pi 5 和 Rockchip 平台，支持 GX/GXC 系列和 MV/RAW 系列相机。浏览器实时预览（MJPEG over HTTP），Rockchip 上自动使用硬件 JPEG 编码。智能安装策略，优先使用预编译包，最大化兼容性。
 
 ## 1. 功能
 
@@ -16,6 +16,9 @@
 - 中英文双语界面
 - 深色 / 浅色主题切换
 - 根据相机系列自动过滤可用功能（如触发模式）
+- 实时画面预览（MJPEG over HTTP）：GX/GXC (UYVY) 与 MV/RAW (GREY) 都可在浏览器直接观看，支持分辨率 / 帧率 / ROI / 画质设置，并自动回填相机当前配置
+- 按平台自动选择 JPEG 编码器：Rockchip 走硬件 `mppjpegenc`（dmabuf 直入，省掉色彩转换），Jetson / Raspberry Pi 保持可移植的软件编码路径；也可用 `encoder` 参数强制软件编码做对比
+- 预览失败可见：起流失败立刻返回 GStreamer 真实原因，进程意外退出时状态转为 error 并提示，前端不再无谓轮询
 
 ## 2. 项目结构
 
@@ -32,25 +35,34 @@ veye_camera_i2c_studio/
 │   ├── i2c_4read / i2c_4write     # 预编译二进制工具
 │   └── sources/                   # C 语言源码
 ├── veye_camera_web_studio/         # Web 服务主程序
-│   ├── main.py                    # FastAPI 入口 (v0.3.0)
+│   ├── main.py                    # FastAPI 入口 (v0.4.1)
 │   ├── app/
 │   │   ├── adapters/              # 平台适配器
 │   │   │   └── jetson/            # Jetson 平台适配
 │   │   ├── api/                   # API 路由
 │   │   │   ├── devices.py         # 相机探测与系列识别接口
-│   │   │   └── commands.py        # 寄存器命令执行接口
+│   │   │   ├── commands.py        # 寄存器命令执行接口
+│   │   │   └── stream.py          # 实时预览接口 (/api/stream)
 │   │   ├── services/              # 业务逻辑层
 │   │   │   ├── command_service.py     # 寄存器读写执行
 │   │   │   ├── probe_service.py       # 相机探测与系列识别
+│   │   │   ├── stream_service.py      # 预览流水线生命周期 / 设备独占 / 帧率统计
 │   │   │   ├── documentation_service.py # 文档服务
 │   │   │   ├── system_service.py      # 系统信息
 │   │   │   └── log_service.py         # 操作日志
+│   │   ├── streaming/             # 实时预览四层子系统
+│   │   │   ├── profile.py         # 流水线参数（caps、编码器选择）
+│   │   │   ├── pipeline.py        # gst-launch argv 组装
+│   │   │   ├── configurators/     # Stage 0：各平台 media-ctl / I2C 配置
+│   │   │   ├── providers/         # Stage 1：色彩转换 + 硬件编码器选择
+│   │   │   └── transports/        # Stage 2：MJPEG multipart 分发
 │   │   ├── static/                # 前端静态文件
 │   │   │   ├── app.js
 │   │   │   ├── style.css
 │   │   │   └── logo*.png
 │   │   └── templates/             # HTML 模板
-│   │       └── index.html
+│   │       ├── index.html
+│   │       └── preview.html       # 弹窗预览页（MJPEG 消费者）
 │   ├── config/                    # 配置文件
 │   │   ├── gx_commands.json       # GX 系列 108 条命令定义
 │   │   ├── gx_command_groups.json # GX 命令分组
@@ -130,6 +142,8 @@ i2c_4read / i2c_4write (MV 系列 C 工具)
 - **前端**: 原生 JavaScript，无框架依赖
 - **硬件通信**: 通过编译好的二进制工具直接操作 I2C 总线
 - **系列识别**: 通过 sysfs 自动检测相机系列（GX 或 MV/RAW）
+- **实时预览**: GStreamer 采集 → MJPEG multipart → HTTP 流式响应，浏览器 `<img>` 直接渲染，不落盘
+- **预览分层**（`app/streaming/`）: Stage 0 Configurator（media-ctl / I2C 配置）→ Stage 1 Provider（色彩转换与编码器选择）→ Stage 2 Transport（MJPEG 封装分发）→ Stage 3 StreamService（流水线生命周期、采集节点独占、消费者断开即回收）
 
 ## 5. 快速开始
 
@@ -137,6 +151,7 @@ i2c_4read / i2c_4write (MV 系列 C 工具)
 
 - Python 3.8+
 - GCC（用于编译 I2C 工具，仅在无预编译包时需要）
+- 实时预览依赖：GStreamer 1.0（base / good 插件）与 v4l-utils，`setup.sh` 会自动安装（缺 sudo 时只警告不中断）。Rockchip 硬件 JPEG 编码另需 `gstreamer1.0-rockchip1`（提供 `mppjpegenc`），缺失时自动回退软件编码
 - 支持的平台：
   - **Nvidia Jetson** (JetPack 4.x/5.x)
   - **Raspberry Pi 5** (Debian 12+/Bookworm, aarch64)
@@ -164,10 +179,14 @@ python3 main.py
 
 ## 6. 已知限制
 
-- **Jetson**、**Raspberry Pi 5** 和 **Rockchip** 平台已完全测试
+- **Jetson**、**Raspberry Pi 5** 和 **Rockchip** 平台已完全测试（含实时预览）
 - Raspberry Pi 4 和其他平台未经充分验证
 - 需要 I2C 总线访问权限（可能需要 root 或正确的 udev 规则）
 - 多客户端并发访问 I2C 总线时可能出现冲突
+- 实时预览每个采集节点同一时刻只允许一个消费者（弹窗预览页优先），消费者断开后流水线即被回收
+- 1080p 软件编码实测约 30 fps 封顶（`videoconvert` 与 `jpegenc` 都是单线程）；Rockchip 硬件编码在画质 60 时约 54 fps、画质 85 时约 31 fps——画质较高时瓶颈已移到"字节读出 → HTTP 分发"（约 4 MB/s）
+- Rockchip `rkcif` 的 `VIDIOC_ENUM_FRAMEINTERVALS` 只列 1–30 fps（仅约束 `S_FMT`，不约束实际传输）；起流 caps 已不带 `framerate`，帧率由 I2C 0x0850 与 media-ctl pad 决定，因此预览帧率填相机标称最高值（如 60）即可
+- 暗光下 AE 会自动延长曝光（慢快门），传感器实际输出帧率会低于设定值，此时帧率偏低不是软件侧问题；可用 `v4l2-ctl -d /dev/videoXX --stream-mmap` 与界面 `measured_fps` 对比来区分相机侧与编码侧
 
 ## 7. 平台兼容性
 
@@ -176,7 +195,7 @@ python3 main.py
 | Nvidia Jetson | ✅ 完全支持 | 原始开发平台 |
 | Raspberry Pi 5 | ✅ 完全支持 | Debian 13 / aarch64 已测试 |
 | Raspberry Pi 4 | ⚠️ 实验性 | 脚本已包含，待验证 |
-| Rockchip RK3588 | ✅ 完全支持 | Orange Pi CM5 已测试 |
+| Rockchip RK3588 | ✅ 完全支持 | Orange Pi CM5 已测试；硬件 MJPEG 需 `gstreamer1.0-rockchip1` |
 
 ## 8. 版本历史
 

@@ -97,3 +97,11 @@ Thumbs.db
 # Runtime operation logs
 veye_camera_web_studio/logs/
 *.jsonl
+
+# I2C tool binaries compiled locally by setup.sh
+# (the shipped prebuilt copies live in gx_i2c_tools/ and mv_i2c_tools/)
+veye_camera_web_studio/tools/i2c_vread
+veye_camera_web_studio/tools/i2c_vwrite
+veye_camera_web_studio/tools/i2c_4read
+veye_camera_web_studio/tools/i2c_4write
+veye_camera_web_studio/tools/lut_rw

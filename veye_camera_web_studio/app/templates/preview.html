@@ -179,6 +179,8 @@
             if (st.width && st.height) parts.push(st.width + "×" + st.height);
             if (st.fps) parts.push(st.fps + " fps");
             if (st.transport) parts.push(st.transport.toUpperCase());
+            // Which element encodes: "mppjpegenc" (hardware) vs "jpegenc" (CPU).
+            if (st.encoder) parts.push(st.encoder);
             if (st.platform) parts.push(st.platform);
             if (st.uptime_s != null) parts.push(t("uptime") + " " + st.uptime_s + "s");
             el.meta.textContent = parts.join("  ·  ");
@@ -194,7 +196,7 @@
                 setMeta(st);
                 if (!st.alive) {
                     const tail = (st.stderr_tail || []).join("\n");
-                    onEnded(t("ended"), tail);
+                    onEnded(t("ended"), st.error || tail);
                 } else {
                     hideOverlay();
                     el.brand.classList.add("live");
@@ -212,6 +214,13 @@
             try { el.stream.removeAttribute("src"); } catch (e) {}
             showOverlay(msg, errText);
             if (!stoppedByUser) el.btnReconnect.style.display = "";
+            // Tell the opener (same origin) so the main panel does not keep showing
+            // "Previewing" for a pipeline that already died.
+            try {
+                if (window.opener && window.opener.__veyePreviewEnded && !stoppedByUser) {
+                    window.opener.__veyePreviewEnded(streamId, errText || msg);
+                }
+            } catch (e) { /* opener gone */ }
         }
 
         async function stopAndClose() {

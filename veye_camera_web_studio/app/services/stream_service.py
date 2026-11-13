@@ -29,12 +29,13 @@ from __future__ import annotations
 import os
 import asyncio
 import logging
+import select
 import shutil
 import subprocess
 import threading
 import time
 import uuid
-from collections import deque
+from collections import OrderedDict, deque
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -68,6 +69,23 @@ _READ_CHUNK = 1 << 16
 _BOUNDARY_TOKEN = b"--frame\r\n"
 # Max GX ROI / picture dimension (matches veye_viewer's 8192 sanity bound).
 _MAX_DIM = 8192
+# How long a freshly launched pipeline is watched before ``start`` reports it up.
+# gst-launch dies within a few hundred ms when S_FMT / caps negotiation fails, so
+# failing here (with the real stderr) beats handing the UI a stream_id that is
+# already dead and then answers every poll with 404.
+_STARTUP_PROBE_S = 1.5
+# How many finished streams keep their last status, so a post-mortem poll can
+# still learn *why* the pipeline ended.
+_FINISHED_KEEP = 8
+# Substrings that mark a gst stderr line as the concrete cause of a failure.
+# ``gst-launch`` prints the generic "ERROR: ... Internal data stream error." first
+# and the actionable detail (S_FMT refusal, EBUSY, negotiation result) in the
+# "Additional debug info" block right after, so these lines are what the UI should
+# show - the last match wins.
+_CAUSE_HINTS = (
+    "busy", "not-negotiated", "s_fmt", "set pixformat", "denied", "permission",
+    "unsupported", "failed", "could not", "no such", "not found", "reason ",
+)
 
 
 @dataclass
@@ -82,6 +100,10 @@ class ActiveStream:
     started_at: float
     state: StreamState = StreamState.RUNNING
     stderr_tail: deque = field(default_factory=lambda: deque(maxlen=200))
+    # Process exit status + last gst error line, filled in once the pipeline is
+    # gone.  ``None`` while it is still healthy.
+    exit_code: Optional[int] = None
+    error: Optional[str] = None
     _stop_lock: threading.Lock = field(default_factory=threading.Lock)
     # Measured-FPS bookkeeping (guarded by its own lock, updated in the read loop).
     _frame_ts: deque = field(default_factory=deque)
@@ -123,12 +145,22 @@ class ActiveStream:
         return float(c)
 
     def info(self) -> Dict[str, Any]:
-        alive = self.process.poll() is None
+        """Status payload for the UI, including the failure cause once dead."""
+        rc = self.process.poll()
+        alive = rc is None
+        if not alive:
+            self.exit_code = rc
+            if self.state is StreamState.RUNNING:
+                # The pipeline quit by itself: that is an error, not a clean stop,
+                # so the UI can show a reason instead of a bland "stopped".
+                self.state = StreamState.ERROR if rc not in (0, None) else StreamState.STOPPED
         return {
             "stream_id": self.stream_id,
             "video_node": self.video_node,
-            "state": self.state.value if alive else StreamState.STOPPED.value,
+            "state": self.state.value,
             "alive": alive,
+            "exit_code": self.exit_code,
+            "error": None if alive else self.error,
             "transport": self.transport_name,
             "media_type": self.media_type,
             "series": self.profile.series,
@@ -138,6 +170,8 @@ class ActiveStream:
             "measured_fps": round(self.measured_fps(), 1) if alive else 0,
             "frames_total": self._frames_total,
             "uptime_s": round(time.time() - self.started_at, 1),
+            # Which element is doing the JPEG encode ("mppjpegenc" vs "jpegenc").
+            "encoder": self.profile.encoder_element or self.profile.encoder,
             "stderr_tail": list(self.stderr_tail)[-20:],
         }
 
@@ -150,6 +184,9 @@ class StreamService:
         self._streams: Dict[str, ActiveStream] = {}
         # device-node exclusivity: /dev/videoN -> stream_id currently capturing it
         self._owners: Dict[str, str] = {}
+        # stream_id -> last status of pipelines that already ended (FIFO-bounded),
+        # so polls arriving after teardown learn the cause instead of a bare 404.
+        self._finished: "OrderedDict[str, Dict[str, Any]]" = OrderedDict()
 
     # ------------------------------------------------------------------
     # Validation helpers
@@ -337,12 +374,17 @@ class StreamService:
         transport: str = "mjpeg",
         jpeg_quality: int = 85,
         skip_configure: bool = False,
+        encoder: str = "jpeg",
     ) -> Dict[str, Any]:
         """Configure the camera and launch the capture pipeline.
 
         Returns {stream_id, playback_url, media_type, pipeline} on success or
         {ok: False, error} on failure.  The device node is held exclusively; a
         second start on the same node returns a 409-style busy error.
+
+        ``encoder`` is the codec policy, not an element name: ``jpeg`` lets the
+        platform provider pick the fastest encoder it actually has (hardware
+        ``mppjpegenc`` on Rockchip), ``jpeg_sw`` forces the portable CPU encoder.
         """
         self._require_supported(fmt)
         self._validate_fmt(fmt)
@@ -352,6 +394,12 @@ class StreamService:
 
         if transport not in ("mjpeg",):
             return {"ok": False, "error": f"Unsupported transport for v1: {transport}"}
+        if encoder not in ("jpeg", "jpeg_sw"):
+            return {
+                "ok": False,
+                "error": f"Unsupported encoder {encoder!r} for the {transport} transport "
+                         "(use 'jpeg' for auto or 'jpeg_sw' to force the CPU encoder)",
+            }
 
         with self._lock:
             owner = self._owners.get(video_node)
@@ -364,6 +412,14 @@ class StreamService:
                 }
             if owner and owner not in self._streams:
                 self._owners.pop(video_node, None)
+
+            # Sweep pipelines that exited on their own: they must keep holding the
+            # device-node claim nor show up as active streams any more.
+            for sid in [s for s, a in self._streams.items() if a.process.poll() is not None]:
+                dead = self._streams.pop(sid)
+                self._remember_finished(dead)
+                if self._owners.get(dead.video_node) == sid:
+                    self._owners.pop(dead.video_node, None)
 
         # ---- configure ----------------------------------------------------
         configure_result: Optional[Dict[str, Any]] = None
@@ -392,13 +448,16 @@ class StreamService:
             height=int(fmt.height),
             fps=int(round(fmt.fps)),
             transport=transport,
-            encoder="jpeg",
+            encoder=encoder,
             jpeg_quality=jpeg_quality,
             topology=topo,
             fmt=fmt,
             input_format=series_input_format(series),
         )
         try:
+            # Resolve the encoder before assembling argv so it is visible in logs
+            # and status even when the provider falls back to the CPU encoder.
+            profile.encoder_element = provider.jpeg_encoder(profile)
             argv = build_gst_argv(profile, provider, trans)
         except Exception as e:  # noqa: BLE001
             logger.exception("Failed to build pipeline")
@@ -440,6 +499,48 @@ class StreamService:
             target=self._drain_stderr, args=(active,), daemon=True, name=f"gsterr-{stream_id}"
         ).start()
 
+        # Brief startup watch: a caps/S_FMT failure kills gst-launch in well under a
+        # second.  Reporting it here gives the caller the real reason instead of a
+        # stream_id that is already dead (the UI then polls a 404 forever).  The loop
+        # also returns as soon as the pipeline produces bytes, so a healthy start
+        # costs milliseconds, not the full probe window.
+        deadline = time.monotonic() + _STARTUP_PROBE_S
+        while time.monotonic() < deadline:
+            if proc.poll() is not None:
+                break
+            try:
+                # Poll stdout without reading it: readiness means frames are flowing
+                # (the viewer must still receive every byte itself).
+                if select.select([proc.stdout], [], [], 0.05)[0]:
+                    break
+            except (OSError, ValueError):
+                break  # stdout unusable; fall back to the process state
+        rc = proc.poll()
+        if rc is not None:
+            time.sleep(0.1)  # let the stderr drain thread pick up the final lines
+            for pipe in (proc.stdout, proc.stderr):
+                if pipe:
+                    try:
+                        pipe.close()
+                    except Exception:  # noqa: BLE001
+                        pass
+            try:
+                proc.wait(timeout=1)  # reap it; never leave a zombie behind
+            except subprocess.TimeoutExpired:
+                proc.kill()
+            reason = active.error or "pipeline exited during startup"
+            logger.error("Stream %s died immediately (exit=%s): %s", stream_id, rc, reason)
+            for _line in list(active.stderr_tail)[-8:]:
+                if _line.strip():
+                    logger.error("  | %s", _line.strip())
+            return {
+                "ok": False,
+                "error": f"Capture pipeline exited (code {rc}): {reason}",
+                "exit_code": rc,
+                "stderr_tail": list(active.stderr_tail)[-20:],
+                "pipeline": argv_to_str(argv),
+            }
+
         with self._lock:
             self._streams[stream_id] = active
             self._owners[video_node] = stream_id
@@ -450,6 +551,7 @@ class StreamService:
             "stream_id": stream_id,
             "playback_url": trans.playback_url(stream_id),
             "media_type": trans.media_type,
+            "encoder": profile.encoder_element,
             "pipeline": argv_to_str(argv),
             "series": series,
             "cap_mode": cap_mode,
@@ -465,7 +567,16 @@ class StreamService:
             for raw in iter(stream.readline, b""):
                 if not raw:
                     break
-                active.stderr_tail.append(raw.decode("utf-8", "replace").rstrip("\n"))
+                line = raw.decode("utf-8", "replace").rstrip("\n")
+                active.stderr_tail.append(line)
+                # gst-launch reports fatal problems as "ERROR: ..." lines plus a
+                # debug block; keep the last matching one as the human-readable
+                # reason and mirror it to the app log so a failure can never be
+                # swallowed by a stream the UI no longer reads.
+                low = line.lower()
+                if "ERROR:" in line or any(h in low for h in _CAUSE_HINTS):
+                    active.error = line.strip()
+                    logger.warning("stream %s gst: %s", active.stream_id, line.strip())
         except Exception:  # noqa: BLE001 - process closed
             pass
         finally:
@@ -504,6 +615,7 @@ class StreamService:
         with self._lock:
             if self._owners.get(active.video_node) == stream_id:
                 self._owners.pop(active.video_node, None)
+            self._remember_finished(active)
 
         logger.info("Stopped stream %s (%s)", stream_id, active.video_node)
         return {"ok": True, "stopped": True, "stream_id": stream_id}
@@ -551,9 +663,30 @@ class StreamService:
         with self._lock:
             if stream_id:
                 active = self._streams.get(stream_id)
-                return {"streams": [active.info()] if active else [], "count": 1 if active else 0}
+                if active:
+                    return {"streams": [active.info()], "count": 1}
+                # Already torn down: answer with the recorded last status (marked
+                # ``gone``) rather than an empty list the API would report as 404.
+                finished = self._finished.get(stream_id)
+                if finished:
+                    stale = dict(finished)
+                    stale["gone"] = True
+                    return {"streams": [stale], "count": 0}
+                return {"streams": [], "count": 0}
             streams = [s.info() for s in self._streams.values()]
             return {"streams": streams, "count": len(streams), "owners": dict(self._owners)}
+
+    def finished_info(self, stream_id: str) -> Optional[Dict[str, Any]]:
+        """Last known status of a stream that already ended (None if never seen)."""
+        with self._lock:
+            info = self._finished.get(stream_id)
+            return dict(info) if info else None
+
+    def _remember_finished(self, active: ActiveStream) -> None:
+        """Record a finished stream's status; must be called with ``self._lock`` held."""
+        self._finished[active.stream_id] = active.info()
+        while len(self._finished) > _FINISHED_KEEP:
+            self._finished.popitem(last=False)
 
     def get(self, stream_id: str) -> Optional[ActiveStream]:
         with self._lock:

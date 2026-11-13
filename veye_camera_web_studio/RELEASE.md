@@ -1,5 +1,43 @@
 # Release Log
 
+## v0.4.1 (2026-11-13)
+
+### New Features
+- **Automatic hardware MJPEG encoder selection**: the platform provider now decides which element encodes JPEG, based on a declared encoder preference + input format list and a cached `gst-inspect-1.0` probe
+  - Rockchip + GX/UYVY runs `v4l2src ! mppjpegenc rc-mode=fixqp q-factor=<quality> ! multipartmux`, feeding the encoder from the capture dmabuf with no `videoconvert` and no copy — 1080p measured 53.8 fps at quality 60 (78 KB/frame) versus 29.4 fps on the CPU path at quality 85
+  - Jetson / Raspberry Pi / unknown platforms keep the byte-for-byte same pipeline as before (`videoconvert ! video/x-raw,format=I420 ! jpegenc`); MV/GRAY8 also stays on the CPU path since MPP does not take it as input
+- **`encoder` field in `/api/stream/start`**: `jpeg` (default) = auto (hardware where available), `jpeg_sw` = force the portable CPU encoder — lets you A/B without touching code
+- **Encoder visibility**: stream status reports the encoding element, `/api/stream/capabilities` exposes `provider.jpeg_encoder_auto` and per-encoder availability, and the preview status line shows which encoder is live next to resolution/fps
+- **Honest start failures**: the 1.5 s startup window is probed with `select()`, so a pipeline that dies during negotiation returns HTTP 400 with the actual GStreamer reason instead of a stream id that is already dead (successful starts still return in ~0.3 s)
+- **Finished streams keep their last status** (most recent 8): polling a stream that already went away answers 200 with `gone: true` plus the reason rather than a bare 404
+
+### Bug Fixes
+- Live preview on Rockchip no longer exits immediately with `not-negotiated (-4)`: capture caps dropped `framerate=`. `rkcif` only advertises 1-30 fps in `VIDIOC_ENUM_FRAMEINTERVALS` — an `S_FMT` restriction, not a transport limit — so `60/1` in the caps was rejecting a healthy 1080p60 stream; frame rate is now owned solely by the I2C fps register and the sensor-pad `@1/fps`
+- `VideoModeCap` (0x005C) is tested by its ROI/Preset bits instead of being handed back as a raw register value (60 previously looked like a capability and skipped the `videomode` write)
+- A pipeline that exits on its own now surfaces as `state=error` with `exit_code` and a parsed stderr reason (the specific `reason not-negotiated (-4)`-style line is preferred over GStreamer's generic `Internal data stream error.`)
+- Frontend stops polling dead streams: 404 / `alive: false` / the popup window ending now show "Preview process exited: <reason>"; five consecutive zero-fps polls show "running, but no frames received yet"; the popup reports its end reason back to the main page
+- `setup.sh` and the four `tools/probe/probe_camera_info-*.sh` scripts restored to mode 755
+
+### Files Modified
+- `app/streaming/providers/base.py` — encoder preference + capability probe machinery, `needs_cpu_convert()`, extended `capabilities()`
+- `app/streaming/providers/rockchip.py` — `mppjpegenc` opt-in and `rc-mode=fixqp` quality mapping
+- `app/streaming/providers/jetson.py` — converter skipped when a hardware encoder is chosen
+- `app/streaming/transports/base.py`, `app/streaming/transports/mjpeg.py` — `sink_tokens(profile, provider)`
+- `app/streaming/pipeline.py` — no dangling `!` when there is no converter stage
+- `app/streaming/profile.py` — caps without `framerate`; `encoder` / `encoder_element` fields
+- `app/services/stream_service.py` — startup probe, stderr cause extraction, finished-stream tombstones, encoder resolution, `encoder` argument
+- `app/services/command_service.py` — `VideoModeCap` bit test
+- `app/api/stream.py` — `encoder` request field; 404 detail carries the death reason
+- `app/static/app.js`, `app/templates/preview.html`, `config/i18n.json` — dead-stream reporting, encoder display, new strings
+- `main.py`, `app/templates/index.html` — version bump to 0.4.1 and cache busting
+- `../setup.sh`, `tools/probe/probe_camera_info-*.sh` — mode 644 -> 755
+
+### Tested On
+- Orange Pi CM5 (Rockchip, Ubuntu 22.04 aarch64) with VEYE GX MIPI 1080p: preset + ROI modes, 30/60 fps, quality 60-85, every delivered frame validated as a standalone JPEG (SOI/APP0-JFIF/DQT/SOF/DHT/SOS/EOI + PIL decode)
+- Pipeline assembly verified unchanged for Jetson, Raspberry Pi 4/5 and generic platforms
+
+---
+
 ## v0.4.0 (2026-11-13)
 
 ### New Features

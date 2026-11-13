@@ -50,6 +50,8 @@ class StreamRequest(BaseModel):
     cap_mode: Optional[int] = None
     preset_mode: Optional[int] = None
     transport: str = "mjpeg"
+    # "jpeg" = auto (hardware encoder where the platform has one), "jpeg_sw" = CPU.
+    encoder: str = "jpeg"
     jpeg_quality: int = 85
     skip_configure: bool = False
     dry_run: bool = False
@@ -121,6 +123,7 @@ def start(req: StreamRequest) -> Dict[str, Any]:
             transport=req.transport,
             jpeg_quality=req.jpeg_quality,
             skip_configure=req.skip_configure,
+            encoder=req.encoder,
         )
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -159,7 +162,16 @@ async def mjpeg(stream_id: str):
     """Serve the live MJPEG multipart stream for an <img> tag."""
     active = stream_service.get(stream_id)
     if active is None:
-        raise HTTPException(status_code=404, detail=f"Unknown stream: {stream_id}")
+        # Include the recorded failure cause when we have one; the <img> cannot show
+        # it, but the browser console / server log now say why the stream is gone.
+        gone = stream_service.finished_info(stream_id)
+        reason = (gone or {}).get("error") or ""
+        detail = f"Stream {stream_id} is not running"
+        if reason:
+            detail += f": {reason}"
+        elif gone:
+            detail += f" (state={gone.get('state')})"
+        raise HTTPException(status_code=404, detail=detail)
     media_type = active.media_type or "multipart/x-mixed-replace; boundary=frame"
     headers = {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",

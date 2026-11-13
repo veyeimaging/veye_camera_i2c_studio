@@ -140,6 +140,8 @@
     "status_stopped": { "en": "Stopped", "zh": "已停止" },
     "status_error": { "en": "Error", "zh": "错误" },
     "status_busy": { "en": "Device busy", "zh": "设备被占用" },
+    "status_died": { "en": "Preview process exited", "zh": "预览进程已退出" },
+    "status_noframes": { "en": "Running, but no frames received yet", "zh": "进程在运行，但暂未收到画面帧" },
     "configure_failed": { "en": "Camera configuration failed", "zh": "相机配置失败" }
   }
 }

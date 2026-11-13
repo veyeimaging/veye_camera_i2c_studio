@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-11-13
+
+### Added
+- **Automatic hardware MJPEG encoder selection per platform**: the Stage-1 provider now owns "which element encodes JPEG", driven by two class attributes (`JPEG_ENCODER_PREFERENCE`, `HW_JPEG_INPUT_FORMATS`) plus a cached `gst-inspect-1.0` probe
+  - On Rockchip, GX/UYVY streams now run `v4l2src ! mppjpegenc rc-mode=fixqp q-factor=<quality> ! multipartmux` straight off the capture dmabuf - no `videoconvert`, no copy. Measured 1080p: 53.8 fps at quality 60 (78 KB/frame) vs 29.4 fps for the CPU path at quality 85
+  - Jetson / Raspberry Pi / unknown platforms resolve to exactly the previous `videoconvert ! video/x-raw,format=I420 ! jpegenc` pipeline (verified by dumping the built argv per platform), and MV/GRAY8 stays on the CPU path because MPP does not accept it as input
+- **`encoder` request field on `/api/stream/start`**: `"jpeg"` (default) lets the platform pick its fastest usable encoder, `"jpeg_sw"` forces the portable CPU encoder for A/B testing and fallbacks
+- **Encoder visibility**: `/api/stream/{id}/status` reports the element actually encoding (`mppjpegenc` / `jpegenc`), `/api/stream/capabilities` reports `provider.jpeg_encoder_auto` and per-encoder availability, and both the popup preview page and the inline status line show it next to resolution/fps
+- **Startup failure is now reported instead of hanging**: the first 1.5 s after launch is probed with `select()`, so a pipeline that dies during caps negotiation makes `/start` return HTTP 400 with the real GStreamer reason, while a successful start still returns in ~0.3 s
+- **Post-mortem status for finished streams**: the last state of the 8 most recent streams is kept, so polling a stream the consumer already dropped answers 200 with `gone: true` plus the exit reason instead of a bare 404
+
+### Fixed
+- **Rockchip live preview died instantly with `not-negotiated (-4)`**: capture caps no longer carry `framerate=`. Rockchip `rkcif` advertises only 1-30 fps in `VIDIOC_ENUM_FRAMEINTERVALS` (a `S_FMT` limit, not a transport limit), so asking for 60/1 in the caps rejected an otherwise healthy 1080p60 stream. Frame rate is owned by Stage 0 only - the I2C fps register and the `@1/fps` on the sensor pad
+- **GX video-mode capability misdetection**: `VideoModeCap` (0x005C) is now evaluated by its ROI/Preset bits instead of being returned as a raw register value; a value such as 60 previously masqueraded as a capability and skipped the `videomode` write
+- **Silent preview failures**: when the pipeline process exits on its own the stream now moves to `state=error`, reporting `alive`, `exit_code` and the parsed stderr reason (keyword table picks the specific "reason ..." line over GStreamer's generic `Internal data stream error.`), and stderr can no longer fill up unnoticed
+- **Frontend no longer polls a dead stream forever**: a 404, a `alive: false` status, or the popup window ending stops the poll and shows "Preview process exited: <reason>"; five consecutive zero-fps polls raise a separate "running, but no frames received yet" hint; new i18n keys `stream.status_died` / `stream.status_noframes`
+- **Executable bits restored** on `setup.sh` and the four `tools/probe/probe_camera_info-*.sh` scripts (were committed 644)
+
+### Files Modified
+- `veye_camera_web_studio/app/streaming/providers/base.py` - encoder preference/probe machinery, `needs_cpu_convert()`, richer `capabilities()`
+- `veye_camera_web_studio/app/streaming/providers/rockchip.py` - `mppjpegenc` opt-in with `rc-mode=fixqp` quality mapping
+- `veye_camera_web_studio/app/streaming/providers/jetson.py` - skips the converter when a hardware encoder is selected
+- `veye_camera_web_studio/app/streaming/transports/{base,mjpeg}.py` - `sink_tokens(profile, provider)` so the transport frames whatever encoder the platform chose
+- `veye_camera_web_studio/app/streaming/pipeline.py` - no dangling `!` when the provider contributes no converter stage
+- `veye_camera_web_studio/app/streaming/profile.py` - caps without `framerate`, new `encoder` / `encoder_element` fields
+- `veye_camera_web_studio/app/services/stream_service.py` - startup probe, error extraction, finished-stream tombstones, encoder resolution
+- `veye_camera_web_studio/app/services/command_service.py` - `VideoModeCap` bit test
+- `veye_camera_web_studio/app/api/stream.py` - `encoder` field, 404 detail carries the death reason
+- `veye_camera_web_studio/app/static/app.js`, `app/templates/preview.html`, `config/i18n.json` - stopped/died handling, encoder display, new strings
+- `setup.sh`, `veye_camera_web_studio/tools/probe/probe_camera_info-*.sh` - mode 644 -> 755
+
+### Tested On
+- Orange Pi CM5 (Rockchip, 8-core, Ubuntu 22.04 aarch64) with VEYE GX MIPI 1080p camera - preset and ROI modes, 30/60 fps, quality 60-85
+- Pipeline assembly regression-checked for Jetson, Raspberry Pi 4/5 and unknown platforms
+
+---
+
 ## [0.4.0] - 2026-11-13
 
 ### Added
@@ -247,6 +284,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | Raspberry Pi 4 | ⚠️ Untested | Scripts available, needs validation |
 | Rockchip RK3588 | ✅ Full Support | Tested on Orange Pi CM5 |
 
+[0.4.1]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.2.0...v0.3.0

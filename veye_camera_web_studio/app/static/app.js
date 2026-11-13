@@ -1357,9 +1357,33 @@
 
     // Inline fallback FPS: read the server-measured rate via the status endpoint
     // (only used when the popup is blocked and the thumbnail <img> is the consumer).
+    let inlineZeroTicks = 0;
     function resetInlineFps() {
         if (dom.streamLiveFps) { dom.streamLiveFps.textContent = "0 fps"; dom.streamLiveFps.style.display = ""; }
+        inlineZeroTicks = 0;
     }
+
+    // The pipeline is gone - either the server no longer knows the id (404) or it
+    // reports the process dead.  Stop polling and surface the recorded reason; a
+    // dead id must not be polled forever while the status line keeps saying 0 fps.
+    function reportStreamGone(st) {
+        let reason = "";
+        if (st) {
+            reason = st.error || "";
+            if (!reason && st.stderr_tail && st.stderr_tail.length) reason = st.stderr_tail.slice(-2).join(" | ");
+            if (!reason && typeof st.exit_code === "number") reason = "gst-launch exit code " + st.exit_code;
+        }
+        handleStreamStopped();
+        setStreamStatus(t("stream.status_died") + (reason ? ": " + reason : ""), "error");
+    }
+
+    // Hook called by the preview popup (same origin) when its pipeline dies, so the
+    // main panel stops reporting "Previewing" for a stream that is already gone.
+    window.__veyePreviewEnded = function (sid, reasonText) {
+        if (!state.streamId || (sid && sid !== state.streamId)) return;
+        reportStreamGone({ error: reasonText || "" });
+    };
+
     async function updateInlineFps() {
         if (!dom.streamLiveFps) return;
         const inlineActive = state.streamId && !state.previewWindow;
@@ -1369,11 +1393,20 @@
         }
         try {
             const res = await fetch("/api/stream/" + state.streamId + "/status");
-            if (res.status === 404) { dom.streamLiveFps.textContent = "0 fps"; return; }
+            if (res.status === 404) { reportStreamGone(null); return; }
             if (!res.ok) return;
             const st = await res.json();
+            if (!st.alive) { reportStreamGone(st); return; }
             const v = (typeof st.measured_fps === "number" && st.measured_fps > 0) ? st.measured_fps : 0;
             dom.streamLiveFps.textContent = (v ? v.toFixed(1) : "0") + " fps";
+            // Alive but delivering nothing for ~5s: say so instead of a silent 0 fps.
+            if (v <= 0) {
+                if (++inlineZeroTicks === 5) {
+                    setStreamStatus(t("stream.status_noframes") + " \u00b7 " + st.width + "\u00d7" + st.height + " @ " + st.fps + " fps", "error");
+                }
+            } else if (inlineZeroTicks > 0) {
+                inlineZeroTicks = 0;
+            }
         } catch (e) { /* ignore transient fetch errors */ }
     }
 
@@ -1448,7 +1481,8 @@
                 state.inlineFpsTimer = setInterval(updateInlineFps, 1000);
             }
             setStreamStatus(
-                t("stream.status_previewing") + " · " + body.width + "×" + body.height + " @ " + body.fps + " fps",
+                t("stream.status_previewing") + " \u00b7 " + body.width + "\u00d7" + body.height +
+                " @ " + body.fps + " fps" + (data.encoder ? " \u00b7 " + data.encoder : ""),
                 "ok"
             );
         } catch (e) {

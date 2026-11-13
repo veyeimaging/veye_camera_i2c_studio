@@ -23,9 +23,12 @@ def build_gst_argv(profile: StreamProfile, provider: StreamProvider, transport: 
         profile.input_caps(),
         "!",
     ]
-    tokens += provider.capture_to_encoder_tokens(profile)
-    tokens += ["!"]
-    tokens += transport.sink_tokens(profile)
+    convert = provider.capture_to_encoder_tokens(profile)
+    if convert:
+        # The hardware JPEG encoder consumes the capture buffer directly, so the
+        # provider contributes no converter and no dangling "!" may be emitted.
+        tokens += convert + ["!"]
+    tokens += transport.sink_tokens(profile, provider)
     return tokens
 
 

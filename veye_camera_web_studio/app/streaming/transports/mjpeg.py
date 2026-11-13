@@ -1,8 +1,10 @@
 """MJPEG-over-HTTP transport (v1 default).
 
-Pipeline tail:  ``... ! jpegenc ! multipartmux ! filesink location=/dev/stdout``
-The multipart byte stream is piped straight to a Starlette ``StreamingResponse``
-with ``multipart/x-mixed-replace`` so a plain ``<img src=...>`` renders live.
+Pipeline tail:  ``... ! <jpeg encoder> ! multipartmux ! filesink location=/dev/stdout``
+The encoder element comes from the platform provider (hardware ``mppjpegenc`` on
+Rockchip, ``jpegenc`` elsewhere); this transport only frames the JPEG bitstream as
+multipart and pipes it to a Starlette ``StreamingResponse`` with
+``multipart/x-mixed-replace`` so a plain ``<img src=...>`` renders live.
 """
 from __future__ import annotations
 
@@ -18,10 +20,13 @@ class MjpegTransport(StreamTransport):
     name = "mjpeg"
     media_type = f"multipart/x-mixed-replace; boundary={BOUNDARY}"
 
-    def sink_tokens(self, profile: StreamProfile) -> List[str]:
-        quality = max(1, min(100, int(profile.jpeg_quality)))
-        return [
-            "jpegenc", f"quality={quality}",
+    def sink_tokens(self, profile: StreamProfile, provider=None) -> List[str]:
+        if provider is not None:
+            encoder = provider.jpeg_encoder_tokens(profile)
+        else:
+            quality = max(1, min(100, int(profile.jpeg_quality)))
+            encoder = ["jpegenc", f"quality={quality}"]
+        return encoder + [
             "!", "multipartmux", f"boundary={BOUNDARY}",
             "!", "filesink", "location=/dev/stdout",
         ]

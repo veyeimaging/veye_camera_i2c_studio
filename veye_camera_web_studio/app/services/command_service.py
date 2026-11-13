@@ -90,18 +90,27 @@ class CommandService:
     # ------------------------------------------------------------------
     def detect_video_mode_cap(self, i2c_bus: int, i2c_addr: str) -> Optional[int]:
         """Read register 0x005C (VideoModeCap).
-        Returns 1=ROI mode, 2=Preset mode, or None on failure."""
+
+        Only bit0 and bit1 are capability flags: 1 = ROI mode, 2 = Preset mode.
+        Anything else (0, or an unrelated value such as a stale 60) is NOT a mode
+        and must be reported as unknown: callers treat a non-None cap as valid and
+        would otherwise skip the ``videomode`` write and misclassify the camera.
+
+        Returns 1 = ROI mode, 2 = Preset mode, or None when undetectable.
+        """
         r = self._run_i2c_read(i2c_bus, i2c_addr, "0x005C", 0, 3)
         if r["ok"]:
             try:
                 val = int(r["raw"])
-                if val & 0x1:
-                    return 1  # ROI mode
-                if val & 0x2:
-                    return 2  # Preset mode
-                return val if val > 0 else None
             except (ValueError, TypeError):
-                pass
+                return None
+            if val & 0x1:
+                return 1  # ROI mode
+            if val & 0x2:
+                return 2  # Preset mode
+            logger.warning(
+                "VideoModeCap 0x005C=%d on bus %s addr %s has no ROI/Preset bit; "
+                "treating capability as unknown", val, i2c_bus, i2c_addr)
         return None
 
     def get_preset_mode_count(self, i2c_bus: int, i2c_addr: str) -> int:

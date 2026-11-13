@@ -101,7 +101,13 @@ class StreamProfile:
     height: int = 1080
     fps: int = 30
     transport: str = "mjpeg"    # "mjpeg" | "h264_ws" (v2)
-    encoder: str = "jpeg"       # "jpeg" | "h264"
+    # "jpeg"  = auto, i.e. hardware encoder if this platform provides a usable one
+    # "jpeg_sw" = force the portable CPU encoder (jpegenc), for A/B and fallbacks
+    # "h264"  = reserved for the v2 websocket/MSE transport
+    encoder: str = "jpeg"
+    # Element actually chosen for the encode, filled in by StreamService.start()
+    # from the platform provider ("jpegenc" / "mppjpegenc" / ...).
+    encoder_element: str = ""
     jpeg_quality: int = 85
     topology: Optional[CameraTopology] = None
     fmt: Optional[CaptureFormat] = None
@@ -109,8 +115,17 @@ class StreamProfile:
     input_format: str = "UYVY"
 
     def input_caps(self) -> str:
-        """v4l2src output caps string (no spaces -> single argv token)."""
+        """v4l2src output caps string (no spaces -> single argv token).
+
+        Deliberately omits ``framerate``: capture drivers can advertise a narrower
+        ENUM_FRAMEINTERVALS range than the sensor actually runs at (Rockchip rkcif
+        allows 1-30 fps even for a 1080p60 stream), so putting e.g. ``60/1`` in the
+        caps makes VIDIOC_S_FMT reject the format and the pipeline dies immediately
+        with ``not-negotiated (-4)``.  Frame rate is owned by Stage 0 only - the I2C
+        fps register plus the sensor-pad ``@1/fps`` in media-ctl - matching the
+        reference veye_viewer, which never sets timeperframe in S_FMT either.
+        """
         return (
             f"video/x-raw,format={self.input_format},"
-            f"width={self.width},height={self.height},framerate={self.fps}/1"
+            f"width={self.width},height={self.height}"
         )

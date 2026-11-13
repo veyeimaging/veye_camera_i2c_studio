@@ -4,7 +4,7 @@
 
 A web-based tool for managing and debugging VEYE cameras. Perform register-level read/write operations directly from your browser.
 
-> **v0.4.1 Release** — Supports Jetson, Raspberry Pi 5, and Rockchip platforms. Supports both GX/GXC series and MV/RAW series cameras. Live preview in the browser (MJPEG over HTTP), using the hardware JPEG encoder automatically on Rockchip. Smart installation strategy with maximum compatibility.
+> **v0.4.2 Release** — Supports Jetson, Raspberry Pi 5, and Rockchip platforms. Supports both GX/GXC series and MV/RAW series cameras. Live preview in the browser (MJPEG over HTTP), using the hardware JPEG encoder automatically on Rockchip and Jetson (`mppjpegenc` / `nvjpegenc`), with an automatic software-encoder fallback when a hardware launch fails. Network-resilient installer plus a smart installation strategy with maximum compatibility.
 
 ## Features
 
@@ -17,7 +17,8 @@ A web-based tool for managing and debugging VEYE cameras. Perform register-level
 - Dark / light theme toggle
 - Automatic feature filtering based on camera series (e.g., trigger modes)
 - Live preview (MJPEG over HTTP): GX/GXC (UYVY) and MV/RAW (GREY) viewable directly in the browser, with resolution / framerate / ROI / quality controls prefilled from the camera's current configuration
-- Per-platform automatic JPEG encoder selection: hardware `mppjpegenc` on Rockchip (dmabuf straight into the encoder, no color convert), the portable software path on Jetson / Raspberry Pi; `encoder` can force the CPU encoder for comparison
+- Per-platform automatic JPEG encoder selection: hardware `mppjpegenc` on Rockchip (dmabuf straight into the encoder, no color convert), GPU `nvjpegenc` on Jetson (kept behind the `nvvidconv` I420 stage), the portable software path on Raspberry Pi; `encoder` can force the CPU encoder for comparison
+- Automatic hardware->software encoder fallback: if the auto-picked hardware encoder dies during startup the pipeline is relaunched once on `jpegenc`, with the fallback source reported in the result
 - Visible preview failures: a failed start returns the real GStreamer reason at once, an unexpected process exit flips the stream to `error` with that reason, and the frontend stops polling a dead stream
 
 ## Project Structure
@@ -35,7 +36,7 @@ veye_camera_i2c_studio/
 │   ├── i2c_4read / i2c_4write     # Pre-compiled binary tools
 │   └── sources/                   # C source code
 ├── veye_camera_web_studio/         # Web server main application
-│   ├── main.py                    # FastAPI entry point (v0.4.1)
+│   ├── main.py                    # FastAPI entry point (v0.4.2)
 │   ├── app/
 │   │   ├── adapters/              # Platform adapters
 │   │   │   └── jetson/            # Jetson platform adapter
@@ -151,7 +152,7 @@ Camera hardware (GX/GXC or MV/RAW series)
 
 - Python 3.8+
 - GCC (for compiling I2C tools, only needed if pre-compiled packages unavailable)
-- Live preview dependencies: GStreamer 1.0 (base / good plugins) and v4l-utils, installed automatically by `setup.sh` (warns instead of aborting when `sudo` is unavailable). Hardware JPEG encoding on Rockchip additionally requires `gstreamer1.0-rockchip1` (provides `mppjpegenc`); without it the software encoder is used automatically
+- Live preview dependencies: GStreamer 1.0 (base / good plugins) and v4l-utils, installed automatically by `setup.sh` (warns instead of aborting when `sudo` is unavailable). Hardware JPEG encoding on Rockchip additionally requires `gstreamer1.0-rockchip1` (provides `mppjpegenc`), on Jetson the L4T `nvjpegenc` plugin; when the plugin is missing or a hardware launch fails the software encoder is used automatically
 - Supported platforms:
   - **Nvidia Jetson** (JetPack 4.x/5.x)
   - **Raspberry Pi 5** (Debian 12+/Bookworm, aarch64)
@@ -182,6 +183,7 @@ Open `http://localhost:8080` in your browser.
 - **Jetson**, **Raspberry Pi 5**, and **Rockchip** platforms are fully tested (including live preview)
 - Raspberry Pi 4 and other platforms need further validation
 - Requires I2C bus access permissions (may need root or proper udev rules)
+- Jetson's `nvjpegenc` only accepts I420/GRAY8 input (never raw UYVY), so its hardware path keeps the `nvvidconv` convert stage - unlike Rockchip's dmabuf-fed `mppjpegenc`; if that element fails to launch on a given board, the pipeline is relaunched once on the software `jpegenc`
 - Multiple clients accessing the I2C bus concurrently may cause conflicts
 - Live preview allows one consumer per capture node at a time (the popup page takes precedence); the pipeline is torn down as soon as the consumer disconnects
 - 1080p software encoding tops out near 30 fps (`videoconvert` and `jpegenc` are both single-threaded); the Rockchip hardware path reaches ~54 fps at quality 60 but only ~31 fps at quality 85, because at higher quality the bottleneck moves to "byte read-out → HTTP delivery" (~4 MB/s)
@@ -192,7 +194,7 @@ Open `http://localhost:8080` in your browser.
 
 | Platform | Status | Notes |
 |----------|--------|-------|
-| Nvidia Jetson | ✅ Full Support | Original development platform |
+| Nvidia Jetson | ✅ Full Support | Original development platform; hardware MJPEG needs the L4T `nvjpegenc` plugin, with automatic software fallback when it is missing |
 | Raspberry Pi 5 | ✅ Full Support | Tested with Debian 13 / aarch64 |
 | Raspberry Pi 4 | ⚠️ Experimental | Scripts included, needs validation |
 | Rockchip RK3588 | ✅ Full Support | Tested on Orange Pi CM5; hardware MJPEG needs `gstreamer1.0-rockchip1` |

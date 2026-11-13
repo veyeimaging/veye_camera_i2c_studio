@@ -1,5 +1,32 @@
 # Release Log
 
+## v0.4.2 (2026-11-13)
+
+### New Features
+- **Jetson hardware JPEG encoding (`nvjpegenc`)**: the Jetson provider prefers the NVJPEG GPU encoder (`JPEG_ENCODER_PREFERENCE = ("nvjpegenc", "jpegenc")`) for GX/UYVY and MV/GRAY8 alike
+  - Platform difference that shapes the design: unlike Rockchip's `mppjpegenc`, `nvjpegenc` does not eat raw UYVY/GRAY8 from the capture node - it takes I420/YV12/GRAY8 (sysmem) or I420/NV12 (NVMM). So `needs_cpu_convert()` stays `True` and the `nvvidconv ! video/x-raw,format=I420` stage is kept; only the tail encoder element changes
+  - `hw_jpeg_extra_tokens()` maps the 0-100 quality slider 1:1 onto `nvjpegenc`, so the slider keeps the same meaning across encoders; every frame is a standalone JFIF JPEG, so mid-stream joiners still decode
+  - Boards without the L4T nvjpeg plugin resolve to exactly the previous `jpegenc` pipeline - behaviour unchanged
+- **Runtime hardware->software encoder fallback** in `stream_service.start()`: pipeline build/launch/startup-probe is factored into `_attempt_launch()`; if the auto-selected hardware encoder dies inside the startup window the pipeline is relaunched once on the portable CPU `jpegenc`, with `encoder_fallback_from` and a note in the result. Forcing `encoder: "jpeg_sw"` skips the retry; if both attempts fail the original hardware error is kept plus a `fallback_error`
+- **`gst-launch-1.0` pre-flight check** before any pipeline work, with a direct "install GStreamer" message instead of a launch exception
+
+### Bug Fixes
+- `setup.sh` no longer aborts the whole install on a flaky connection (Jetson case): the `pip install --upgrade pip` step is wrapped in `if ! ...; then warn; fi` so a truncated wheel ("hashes do not match") under `set -e` is non-fatal - the venv's bundled pip is usable anyway; all `pip install` calls add `--retries 5` to `--timeout 60` so interrupted downloads resume
+- `setup.sh` and the four `tools/probe/probe_camera_info-*.sh` scripts restored to mode 755
+
+### Files Modified
+- `app/streaming/providers/jetson.py` — `jpeg_hw`/`nvjpegenc` encoder entry, `needs_cpu_convert()` pinned True, `hw_jpeg_extra_tokens()` quality mapping
+- `app/services/stream_service.py` — `_attempt_launch()` extraction, hardware->software fallback, early `gst-launch-1.0` check, `encoder_element` in error payloads
+- `../setup.sh` — pip upgrade non-fatal, `--retries 5` on all installs, mode 644 -> 755
+- `tools/probe/probe_camera_info-*.sh` — mode 644 -> 755
+- `tools/probe/auto_camera_index.json` — regenerated probe index sample (Jetson MV camera)
+- `main.py`, `app/templates/index.html` — version bump to 0.4.2 and cache busting
+
+### Tested On
+- Nvidia Jetson (L4T R39, aarch64) with a VEYE MIPI camera: `v4l2src ! nvvidconv ! I420 ! nvjpegenc` verified frame-by-frame as standalone baseline JPEG; hardware->software fallback exercised by forcing a startup failure; `setup.sh` re-run under a slow connection completes with exit 0 via resumed downloads
+
+---
+
 ## v0.4.1 (2026-11-13)
 
 ### New Features

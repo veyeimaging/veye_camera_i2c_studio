@@ -142,7 +142,15 @@ fi
 if $USE_VENV; then
     PYTHON_CMD="$VENV_DIR/bin/python"
     PIP_CMD="$VENV_DIR/bin/pip"
-    "$PIP_CMD" install --quiet --upgrade pip --index-url "$PIP_INDEX_URL" --trusted-host "$PIP_TRUSTED_HOST"
+    # Upgrading pip is best-effort: on flaky connections the downloaded wheel can
+    # be truncated ("hashes do not match"), which must NOT abort setup. The venv's
+    # bundled pip is fully usable, so tolerate failures here.
+    if ! "$PIP_CMD" install --quiet --upgrade pip \
+        --index-url "$PIP_INDEX_URL" \
+        --trusted-host "$PIP_TRUSTED_HOST" \
+        --timeout 60 --retries 5 2>/dev/null; then
+        warn "pip upgrade skipped (network/hash check failed); continuing with bundled pip ($("$PIP_CMD" --version | awk '{print $2}'))"
+    fi
     info "Virtual environment ready"
 else
     # Fallback: use system pip with --break-system-packages (PEP 668 on Ubuntu 24.04+)
@@ -184,7 +192,7 @@ else
     if $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
         --index-url "$PIP_INDEX_URL" \
         --trusted-host "$PIP_TRUSTED_HOST" \
-        --timeout 60 \
+        --timeout 60 --retries 5 \
         --only-binary=:all: \
         --prefer-binary \
         $($USE_VENV || echo "--break-system-packages --user") 2>/dev/null; then
@@ -196,7 +204,7 @@ else
         if $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
             --index-url "$PIP_INDEX_URL" \
             --trusted-host "$PIP_TRUSTED_HOST" \
-            --timeout 60 \
+            --timeout 60 --retries 5 \
             --no-binary=none \
             $($USE_VENV || echo "--break-system-packages --user") 2>/dev/null; then
             info "Dependencies installed (compiled locally)"
@@ -210,7 +218,7 @@ else
                 $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
                     --index-url "https://mirrors.aliyun.com/pypi/simple/" \
                     --trusted-host "mirrors.aliyun.com" \
-                    --timeout 60 \
+                    --timeout 60 --retries 5 \
                     --prefer-binary \
                     $($USE_VENV || echo "--break-system-packages --user") \
                     || fail "Failed to install dependencies from Aliyun mirror"
@@ -219,7 +227,7 @@ else
                 $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
                     --index-url "https://pypi.tuna.tsinghua.edu.cn/simple" \
                     --trusted-host "pypi.tuna.tsinghua.edu.cn" \
-                    --timeout 60 \
+                    --timeout 60 --retries 5 \
                     --prefer-binary \
                     $($USE_VENV || echo "--break-system-packages --user") \
                     || fail "Failed to install dependencies from Tsinghua mirror"

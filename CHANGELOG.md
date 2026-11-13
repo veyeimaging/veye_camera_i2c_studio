@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-11-13
+
+### Added
+- **Jetson hardware JPEG encoding (`nvjpegenc`)**: the Jetson provider now prefers the NVJPEG GPU encoder (`JPEG_ENCODER_PREFERENCE = ("nvjpegenc", "jpegenc")`) for both GX/UYVY and MV/GRAY8 streams
+  - Unlike Rockchip's `mppjpegenc`, `nvjpegenc` never accepts raw UYVY, so `needs_cpu_convert()` stays pinned to `True` - the `nvvidconv ! I420` convert stage is kept and only the final encoder element changes
+  - The `quality` slider maps 1:1 to the CPU `jpegenc` value, so switching encoders does not change its meaning; boards without the L4T nvjpeg plugin resolve to the exact previous `jpegenc` pipeline
+- **Runtime hardware->software encoder fallback**: stream launch is factored into `_attempt_launch()`; when the auto-picked hardware encoder dies during the startup probe, the pipeline is relaunched once on the portable CPU `jpegenc` and the result carries `encoder_fallback_from` plus a note. Forcing `encoder: "jpeg_sw"` skips the retry, and the original hardware error is kept if both attempts fail
+- **`gst-launch-1.0` is now checked before any pipeline work**, returning a clear "Install GStreamer" error instead of a launch exception
+
+### Fixed
+- **`setup.sh` aborting on flaky networks (e.g. Jetson)**: the "upgrade pip" step is now best-effort (`if ! ...; then warn; fi`) - a truncated wheel under the script's `set -e` used to kill the whole install with "hashes do not match" even though the venv's bundled pip is fully usable. All `pip install` invocations gained `--retries 5` alongside the existing `--timeout 60`, so interrupted downloads resume instead of failing
+- **Executable bits restored** on `setup.sh` and the four `tools/probe/probe_camera_info-*.sh` scripts (were committed 644 again)
+
+### Files Modified
+- `veye_camera_web_studio/app/streaming/providers/jetson.py` - `jpeg_hw`/`nvjpegenc` encoder entry, `needs_cpu_convert()` pinned True, `hw_jpeg_extra_tokens()` quality mapping
+- `veye_camera_web_studio/app/services/stream_service.py` - `_attempt_launch()` extraction, hardware->software fallback path, early `gst-launch-1.0` check, `encoder_element` in error payloads
+- `setup.sh` - pip upgrade made non-fatal, `--retries 5` on all installs, mode 644 -> 755
+- `veye_camera_web_studio/tools/probe/probe_camera_info-*.sh` - mode 644 -> 755
+- `veye_camera_web_studio/tools/probe/auto_camera_index.json` - regenerated probe index sample from a Jetson MV camera run
+- `veye_camera_web_studio/main.py`, `app/templates/index.html` - version bump to 0.4.2 and cache busting
+
+### Tested On
+- Nvidia Jetson (L4T R39, aarch64) with VEYE MIPI camera - `nvvidconv ! I420 ! nvjpegenc` verified to emit standalone baseline JPEG frames per buffer; hardware->software fallback exercised by forcing a startup failure
+- `setup.sh` re-run under a slow/flaky connection: multiple resumed wheel downloads, install completes with exit 0
+
+---
+
 ## [0.4.1] - 2026-11-13
 
 ### Added
@@ -284,6 +311,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | Raspberry Pi 4 | ⚠️ Untested | Scripts available, needs validation |
 | Rockchip RK3588 | ✅ Full Support | Tested on Orange Pi CM5 |
 
+[0.4.2]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.3.0...v0.3.1

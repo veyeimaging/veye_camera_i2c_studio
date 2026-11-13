@@ -69,7 +69,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VEYE Camera Web Studio",
     description="Web-based tool for managing and debugging VEYE cameras",
-    version="0.4.1",
+    version="0.4.2",
     lifespan=lifespan,
 )
 
@@ -125,7 +125,7 @@ def get_config():
     i2c_defaults = _load_default_i2c_config()
     config = {
         "app_name": "VEYE Camera Web Studio",
-        "version": "0.4.1",
+        "version": "0.4.2",
         "default_i2c_bus": i2c_defaults["default_i2c_bus"],
         "default_i2c_addr": i2c_defaults["default_i2c_addr"],
         "default_timeout": 5,

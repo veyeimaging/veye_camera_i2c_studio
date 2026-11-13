@@ -4,7 +4,7 @@
 
 基于 Web 的 VEYE 相机管理与调试工具。通过浏览器即可对相机进行寄存器级别的读写操作。
 
-> **v0.4.1 版本** — 支持 Jetson、Raspberry Pi 5 和 Rockchip 平台，支持 GX/GXC 系列和 MV/RAW 系列相机。浏览器实时预览（MJPEG over HTTP），Rockchip 上自动使用硬件 JPEG 编码。智能安装策略，优先使用预编译包，最大化兼容性。
+> **v0.4.2 版本** — 支持 Jetson、Raspberry Pi 5 和 Rockchip 平台，支持 GX/GXC 系列和 MV/RAW 系列相机。浏览器实时预览（MJPEG over HTTP），Rockchip 与 Jetson 上自动使用硬件 JPEG 编码器（`mppjpegenc` / `nvjpegenc`），硬件编码起流失败时自动回落软件编码。安装脚本增强网络容错，智能安装策略，优先使用预编译包，最大化兼容性。
 
 ## 1. 功能
 
@@ -17,7 +17,8 @@
 - 深色 / 浅色主题切换
 - 根据相机系列自动过滤可用功能（如触发模式）
 - 实时画面预览（MJPEG over HTTP）：GX/GXC (UYVY) 与 MV/RAW (GREY) 都可在浏览器直接观看，支持分辨率 / 帧率 / ROI / 画质设置，并自动回填相机当前配置
-- 按平台自动选择 JPEG 编码器：Rockchip 走硬件 `mppjpegenc`（dmabuf 直入，省掉色彩转换），Jetson / Raspberry Pi 保持可移植的软件编码路径；也可用 `encoder` 参数强制软件编码做对比
+- 按平台自动选择 JPEG 编码器：Rockchip 走硬件 `mppjpegenc`（dmabuf 直入，省掉色彩转换），Jetson 走 GPU `nvjpegenc`（保留 `nvvidconv` 转 I420 后硬编码），Raspberry Pi 保持可移植的软件编码路径；也可用 `encoder` 参数强制软件编码做对比
+- 硬件编码器起流失败时自动回落软件 `jpegenc` 重启一次，并在结果中提示回落来源，预览不再因平台差异直接报错
 - 预览失败可见：起流失败立刻返回 GStreamer 真实原因，进程意外退出时状态转为 error 并提示，前端不再无谓轮询
 
 ## 2. 项目结构
@@ -35,7 +36,7 @@ veye_camera_i2c_studio/
 │   ├── i2c_4read / i2c_4write     # 预编译二进制工具
 │   └── sources/                   # C 语言源码
 ├── veye_camera_web_studio/         # Web 服务主程序
-│   ├── main.py                    # FastAPI 入口 (v0.4.1)
+│   ├── main.py                    # FastAPI 入口 (v0.4.2)
 │   ├── app/
 │   │   ├── adapters/              # 平台适配器
 │   │   │   └── jetson/            # Jetson 平台适配
@@ -151,7 +152,7 @@ i2c_4read / i2c_4write (MV 系列 C 工具)
 
 - Python 3.8+
 - GCC（用于编译 I2C 工具，仅在无预编译包时需要）
-- 实时预览依赖：GStreamer 1.0（base / good 插件）与 v4l-utils，`setup.sh` 会自动安装（缺 sudo 时只警告不中断）。Rockchip 硬件 JPEG 编码另需 `gstreamer1.0-rockchip1`（提供 `mppjpegenc`），缺失时自动回退软件编码
+- 实时预览依赖：GStreamer 1.0（base / good 插件）与 v4l-utils，`setup.sh` 会自动安装（缺 sudo 时只警告不中断）。Rockchip 硬件 JPEG 编码另需 `gstreamer1.0-rockchip1`（提供 `mppjpegenc`），Jetson 硬件 JPEG 编码需 L4T 的 `nvjpegenc` 插件；插件缺失或起流失败时都会自动回退软件编码
 - 支持的平台：
   - **Nvidia Jetson** (JetPack 4.x/5.x)
   - **Raspberry Pi 5** (Debian 12+/Bookworm, aarch64)
@@ -182,6 +183,7 @@ python3 main.py
 - **Jetson**、**Raspberry Pi 5** 和 **Rockchip** 平台已完全测试（含实时预览）
 - Raspberry Pi 4 和其他平台未经充分验证
 - 需要 I2C 总线访问权限（可能需要 root 或正确的 udev 规则）
+- Jetson 的 `nvjpegenc` 只接受 I420/GRAY8 输入（不吃原始 UYVY），因此硬件编码路径仍保留 `nvvidconv` 转换段，与 Rockchip 的 dmabuf 直入不同；若该元件在个别板子上起流失败，会自动回落软件 `jpegenc` 重启一次
 - 多客户端并发访问 I2C 总线时可能出现冲突
 - 实时预览每个采集节点同一时刻只允许一个消费者（弹窗预览页优先），消费者断开后流水线即被回收
 - 1080p 软件编码实测约 30 fps 封顶（`videoconvert` 与 `jpegenc` 都是单线程）；Rockchip 硬件编码在画质 60 时约 54 fps、画质 85 时约 31 fps——画质较高时瓶颈已移到"字节读出 → HTTP 分发"（约 4 MB/s）
@@ -192,7 +194,7 @@ python3 main.py
 
 | 平台 | 状态 | 备注 |
 |------|------|------|
-| Nvidia Jetson | ✅ 完全支持 | 原始开发平台 |
+| Nvidia Jetson | ✅ 完全支持 | 原始开发平台；硬件 MJPEG 需 L4T `nvjpegenc` 插件，缺失时自动回退软件编码 |
 | Raspberry Pi 5 | ✅ 完全支持 | Debian 13 / aarch64 已测试 |
 | Raspberry Pi 4 | ⚠️ 实验性 | 脚本已包含，待验证 |
 | Rockchip RK3588 | ✅ 完全支持 | Orange Pi CM5 已测试；硬件 MJPEG 需 `gstreamer1.0-rockchip1` |

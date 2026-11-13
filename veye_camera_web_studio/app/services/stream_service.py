@@ -432,22 +432,94 @@ class StreamService:
                     "configure": configure_result,
                 }
 
-        # ---- build profile + pipeline -------------------------------------
-        series = (fmt.series or "gx").lower()
-        cap_mode = fmt.cap_mode
+        # ---- launch (with hardware->software fallback) --------------------
         provider = get_provider(platform)
         trans = get_transport(transport)
+        series = (fmt.series or "gx").lower()
+        cap_mode = fmt.cap_mode
         jpeg_quality = max(1, min(100, int(jpeg_quality)))
 
+        if shutil.which("gst-launch-1.0") is None:
+            return {
+                "ok": False,
+                "error": "gst-launch-1.0 not found. Install GStreamer "
+                         "(good + jpeg plugins) on the board.",
+            }
+
+        active, result = self._attempt_launch(
+            platform, topo, fmt, provider, trans, encoder, jpeg_quality
+        )
+
+        # Runtime fallback: when the platform auto-picked a hardware JPEG encoder
+        # (e.g. Jetson ``nvjpegenc`` / Rockchip ``mppjpegenc``) and that pipeline
+        # dies during startup on this particular board/format, relaunch once on the
+        # portable CPU encoder so the preview still comes up instead of erroring.
+        # Skipped when the caller forced ``jpeg_sw`` (already software) or when the
+        # chosen element already was ``jpegenc`` (nothing to fall back to).
+        hw_el = result.get("encoder_element")
+        if active is None and encoder == "jpeg" and hw_el and hw_el != "jpegenc":
+            logger.warning(
+                "Hardware encoder %s failed at startup on %s (%s); retrying with software jpegenc",
+                hw_el, video_node, result.get("error"),
+            )
+            fb_active, fb_result = self._attempt_launch(
+                platform, topo, fmt, provider, trans, "jpeg_sw", jpeg_quality
+            )
+            if fb_active is not None:
+                fb_result["encoder_fallback_from"] = hw_el
+                fb_result["note"] = (
+                    f"hardware encoder {hw_el} failed at runtime; fell back to software jpegenc"
+                )
+                active, result = fb_active, fb_result
+            else:
+                # Keep the original hardware error (more informative) but note that
+                # the software retry failed too, so the UI can show both causes.
+                result["fallback_error"] = fb_result.get("error")
+
+        if active is None:
+            return result
+
+        stream_id = result["stream_id"]
+        with self._lock:
+            self._streams[stream_id] = active
+            self._owners[video_node] = stream_id
+
+        logger.info("Started stream %s on %s: %s", stream_id, video_node, result["pipeline"])
+        result["series"] = series
+        result["cap_mode"] = cap_mode
+        result["configure"] = configure_result
+        return result
+
+    def _attempt_launch(
+        self,
+        platform: str,
+        topo: CameraTopology,
+        fmt: CaptureFormat,
+        provider,
+        trans,
+        encoder: str,
+        jpeg_quality: int,
+    ) -> "tuple[Optional[ActiveStream], Dict[str, Any]]":
+        """Build + launch one capture pipeline and watch it through startup.
+
+        Returns ``(active, result)``.  On success ``active`` is the live stream and
+        ``result`` is the ``start()`` payload (``ok`` True, ``stream_id`` set) but
+        NOT yet registered in ``_streams``/``_owners`` - the caller commits it once
+        it is sure it will keep this attempt (so a hardware->software retry can
+        discard a dead attempt cleanly).  On failure ``active`` is None and
+        ``result`` is an ``ok`` False error dict carrying ``encoder_element`` so the
+        caller can decide whether a software fallback is worthwhile.
+        """
+        series = (fmt.series or "gx").lower()
         profile = StreamProfile(
             stream_id="",
             platform=platform,
             series=series,
-            video_node=video_node,
+            video_node=topo.video_node,
             width=int(fmt.width),
             height=int(fmt.height),
             fps=int(round(fmt.fps)),
-            transport=transport,
+            transport=trans.name,
             encoder=encoder,
             jpeg_quality=jpeg_quality,
             topology=topo,
@@ -461,15 +533,12 @@ class StreamService:
             argv = build_gst_argv(profile, provider, trans)
         except Exception as e:  # noqa: BLE001
             logger.exception("Failed to build pipeline")
-            return {"ok": False, "error": f"pipeline build failed: {e}"}
-
-        if shutil.which("gst-launch-1.0") is None:
-            return {
+            return None, {
                 "ok": False,
-                "error": "gst-launch-1.0 not found. Install GStreamer "
-                         "(good + jpeg plugins) on the board.",
-                "pipeline": argv_to_str(argv),
+                "error": f"pipeline build failed: {e}",
+                "encoder_element": profile.encoder_element,
             }
+        encoder_element = profile.encoder_element
 
         stream_id = uuid.uuid4().hex[:12]
         profile.stream_id = stream_id
@@ -483,11 +552,16 @@ class StreamService:
             )
         except Exception as e:  # noqa: BLE001
             logger.exception("Failed to launch gst-launch")
-            return {"ok": False, "error": f"launch failed: {e}", "pipeline": argv_to_str(argv)}
+            return None, {
+                "ok": False,
+                "error": f"launch failed: {e}",
+                "pipeline": argv_to_str(argv),
+                "encoder_element": encoder_element,
+            }
 
         active = ActiveStream(
             stream_id=stream_id,
-            video_node=video_node,
+            video_node=topo.video_node,
             profile=profile,
             process=proc,
             transport_name=trans.name,
@@ -533,29 +607,23 @@ class StreamService:
             for _line in list(active.stderr_tail)[-8:]:
                 if _line.strip():
                     logger.error("  | %s", _line.strip())
-            return {
+            return None, {
                 "ok": False,
                 "error": f"Capture pipeline exited (code {rc}): {reason}",
                 "exit_code": rc,
                 "stderr_tail": list(active.stderr_tail)[-20:],
                 "pipeline": argv_to_str(argv),
+                "encoder_element": encoder_element,
             }
 
-        with self._lock:
-            self._streams[stream_id] = active
-            self._owners[video_node] = stream_id
-
-        logger.info("Started stream %s on %s: %s", stream_id, video_node, argv_to_str(argv))
-        return {
+        return active, {
             "ok": True,
             "stream_id": stream_id,
             "playback_url": trans.playback_url(stream_id),
             "media_type": trans.media_type,
-            "encoder": profile.encoder_element,
+            "encoder": encoder_element,
+            "encoder_element": encoder_element,
             "pipeline": argv_to_str(argv),
-            "series": series,
-            "cap_mode": cap_mode,
-            "configure": configure_result,
         }
 
     @staticmethod

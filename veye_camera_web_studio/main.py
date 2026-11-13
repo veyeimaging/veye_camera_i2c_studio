@@ -20,6 +20,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.devices import router as devices_router
 from app.api.commands import router as commands_router
+from app.api.stream import router as stream_router
+from app.services.stream_service import stream_service
 
 # Configure logging
 logging.basicConfig(
@@ -56,13 +58,18 @@ async def lifespan(app: FastAPI):
             else:
                 logger.warning(f"  Config missing: {fname}")
     yield
+    # Terminate any running live-preview pipelines before exiting.
+    try:
+        stream_service.shutdown()
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to shut down streams cleanly")
     logger.info("VEYE Camera Web Studio shutting down.")
 
 
 app = FastAPI(
     title="VEYE Camera Web Studio",
     description="Web-based tool for managing and debugging VEYE cameras",
-    version="0.3.1",
+    version="0.4.0",
     lifespan=lifespan,
 )
 
@@ -84,6 +91,7 @@ templates = Jinja2Templates(directory=TEMPLATE_DIR)
 # Register API routers
 app.include_router(devices_router)
 app.include_router(commands_router)
+app.include_router(stream_router)
 
 
 @app.get("/api/i18n")
@@ -117,7 +125,7 @@ def get_config():
     i2c_defaults = _load_default_i2c_config()
     config = {
         "app_name": "VEYE Camera Web Studio",
-        "version": "0.3.1",
+        "version": "0.4.0",
         "default_i2c_bus": i2c_defaults["default_i2c_bus"],
         "default_i2c_addr": i2c_defaults["default_i2c_addr"],
         "default_timeout": 5,
@@ -148,6 +156,20 @@ async def index(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="index.html",
+        context={}
+    )
+
+
+@app.get("/preview", response_class=HTMLResponse)
+async def preview(request: Request):
+    """Serve the standalone live-preview window (opened as a popup).
+
+    The page reads ``?stream_id=`` and becomes the single MJPEG consumer for
+    that stream, so the small inline thumbnail never double-attaches.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="preview.html",
         context={}
     )
 

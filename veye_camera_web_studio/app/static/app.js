@@ -15,6 +15,12 @@
         view: "welcome",
         cameras: [],
         selectedCamera: null,
+        streamId: null,  // active live-preview stream id (GX only)
+        previewWindow: null,       // dedicated /preview popup (the sole MJPEG consumer)
+        streamWatchTimer: null,    // polls the popup to detect when the user closes it
+        streamCap: null,           // detected VideoModeCap: 1=ROI, 2=Preset, null=unknown
+        streamPresetModes: [],     // preset modes read from the camera (cap_mode==2)
+        inlineFpsTimer: null,      // polls server-measured fps for the inline fallback
         platform: "jetson",
         cameraSeries: "gx",  // "gx" or "mv"
         supportedSeries: [],
@@ -37,6 +43,12 @@
             "cameraSelect", "platformSelect",
             "camModel", "camVerC", "camVerL", "camSerial", "camI2cBus", "camI2cAddr",
             "camVideoNode", "camMediaNode", "camEntityName",
+            "streamSection", "streamHint", "streamControls", "streamPreviewWrap", "mjpegView", "streamStatus",
+            "streamCapRow",
+            "streamWidth", "streamHeight", "streamFps", "streamRoiWrap", "streamRoiX", "streamRoiY",
+            "streamPresetWrap", "streamPresetMode", "streamQuality",
+            "streamCapBadge", "streamCapText", "btnStreamRedetect",
+            "btnStartStream", "btnOpenPreview", "btnStopStream", "streamPopupHint", "streamLiveFps",
             "defaultI2cInfo", "manualSeries", "manualI2cBus", "manualI2cAddr", "btnApplyManual",
             "btnRescan",
             "cameraSeriesDisplay", "camSeries",
@@ -249,6 +261,7 @@
                 // Show default I2C info
                 updateDefaultI2cDisplay();
                 dom.defaultI2cInfo.style.display = "";
+                refreshStreamCaps();
                 return;
             }
 
@@ -274,6 +287,8 @@
     function selectCamera(index) {
         const cam = state.cameras[index];
         if (!cam) return;
+        // Stop any running preview before switching devices (releases the old lock).
+        if (state.streamId) { stopStream(); }
         state.selectedCamera = cam;
 
         // Auto-switch camera series if detected from sysfs
@@ -311,6 +326,7 @@
         dom.camVideoNode.textContent = cam.video_node || "—";
         dom.camMediaNode.textContent = cam.media_node || "—";
         dom.camEntityName.textContent = cam.media_entity_name || "—";
+        refreshStreamCaps();
     }
 
     function setStatus(s) {
@@ -1100,7 +1116,7 @@
                             </div>`;
                         }
                     }
-                    // Special handling for sensor register read
+                    // Special handling for sensor register indirect read
                     else if (cmd && cmd.id === "snsreg") {
                         const lang = state.lang || 'en';
                         const statusLabel = lang === 'zh' ? '状态' : 'Status';
@@ -1301,6 +1317,353 @@
             if (state.currentGroup) selectGroup(state.currentGroup);
             else showView("welcome");
         });
+
+        // Live Preview (GX / UYVY)
+        if (dom.btnStartStream) dom.btnStartStream.addEventListener("click", startStream);
+        if (dom.btnStopStream) dom.btnStopStream.addEventListener("click", stopStream);
+        if (dom.streamPresetMode) dom.streamPresetMode.addEventListener("change", applyStreamPreset);
+        if (dom.btnStreamRedetect) dom.btnStreamRedetect.addEventListener("click", refreshStreamCaps);
+        if (dom.btnOpenPreview) dom.btnOpenPreview.addEventListener("click", () => { if (state.streamId) openPreviewWindow(state.streamId); });
+    }
+
+    // ========== Live Preview (GX / UYVY) ==========
+    async function streamPost(url, body) {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body || {}),
+        });
+        let payload = null;
+        try { payload = await res.json(); } catch (e) { /* no body */ }
+        if (!res.ok) {
+            let msg = "HTTP " + res.status;
+            if (payload) {
+                const d = payload.detail || payload.error;
+                msg = (typeof d === "string") ? d : JSON.stringify(d || payload);
+            }
+            const err = new Error(msg);
+            err.status = res.status;
+            err.payload = payload;
+            throw err;
+        }
+        return payload;
+    }
+
+    function streamNum(el, def) {
+        if (!el) return def;
+        const v = parseFloat(el.value);
+        return isNaN(v) ? def : v;
+    }
+
+    // Inline fallback FPS: read the server-measured rate via the status endpoint
+    // (only used when the popup is blocked and the thumbnail <img> is the consumer).
+    function resetInlineFps() {
+        if (dom.streamLiveFps) { dom.streamLiveFps.textContent = "0 fps"; dom.streamLiveFps.style.display = ""; }
+    }
+    async function updateInlineFps() {
+        if (!dom.streamLiveFps) return;
+        const inlineActive = state.streamId && !state.previewWindow;
+        if (!inlineActive) {
+            if (state.inlineFpsTimer) { clearInterval(state.inlineFpsTimer); state.inlineFpsTimer = null; }
+            return;
+        }
+        try {
+            const res = await fetch("/api/stream/" + state.streamId + "/status");
+            if (res.status === 404) { dom.streamLiveFps.textContent = "0 fps"; return; }
+            if (!res.ok) return;
+            const st = await res.json();
+            const v = (typeof st.measured_fps === "number" && st.measured_fps > 0) ? st.measured_fps : 0;
+            dom.streamLiveFps.textContent = (v ? v.toFixed(1) : "0") + " fps";
+        } catch (e) { /* ignore transient fetch errors */ }
+    }
+
+    function buildStreamBody() {
+        const cam = state.selectedCamera || {};
+        const series = state.cameraSeries || "gx";
+        const cap = state.streamCap;   // GX: 1=ROI, 2=Preset, null=auto; MV: n/a
+        const width = Math.round(streamNum(dom.streamWidth, 1920));
+        const height = Math.round(streamNum(dom.streamHeight, 1080));
+        const fps = streamNum(dom.streamFps, 30);
+        if (width < 1 || height < 1) throw new Error(t("stream.width") + "/" + t("stream.height") + " invalid");
+        return {
+            platform: state.platform,
+            camera: cam,
+            series,
+            width,
+            height,
+            fps,
+            roi_x: Math.round(streamNum(dom.streamRoiX, 0)),
+            roi_y: Math.round(streamNum(dom.streamRoiY, 0)),
+            cap_mode: series === "gx" ? cap : null,
+            preset_mode: (series === "gx" && cap === 2) ? Math.round(streamNum(dom.streamPresetMode, 0)) : null,
+            transport: "mjpeg",
+            jpeg_quality: Math.round(streamNum(dom.streamQuality, 85)),
+        };
+    }
+
+    function setStreamStatus(msg, kind) {
+        if (!dom.streamStatus) return;
+        dom.streamStatus.textContent = msg || "";
+        dom.streamStatus.className = "stream-status" + (kind ? " " + kind : "");
+    }
+
+    async function startStream() {
+        const cam = state.selectedCamera;
+        if (!cam || !cam.video_node) { setStreamStatus(t("stream.hint_no_camera"), "error"); return; }
+        const _s = state.cameraSeries || "gx";
+        if (_s !== "gx" && _s !== "mv") return;
+        if (state.streamId) return;
+        // Pre-open the popup synchronously (still inside the click gesture) so it
+        // is not blocked; we navigate it to /preview once we know the stream_id.
+        const specs = "width=1040,height=760,menubar=no,toolbar=no,location=no,status=no,resizable=yes";
+        const popup = window.open("about:blank", "veyeLivePreview", specs);
+        const popupBlocked = !popup;
+        dom.btnStartStream.disabled = true;
+        setStreamStatus(t("stream.status_starting"), "loading");
+        let body;
+        try { body = buildStreamBody(); } catch (e) {
+            if (popup) popup.close();
+            setStreamStatus(e.message, "error"); dom.btnStartStream.disabled = false; return;
+        }
+        try {
+            const data = await streamPost("/api/stream/start", body);
+            state.streamId = data.stream_id;
+            dom.streamPreviewWrap.style.display = "";
+            dom.btnStartStream.style.display = "none";
+            dom.btnStopStream.style.display = "";
+            if (dom.btnOpenPreview) dom.btnOpenPreview.style.display = "";
+            if (!popupBlocked) {
+                // Popup is the sole consumer; keep the inline <img> detached so
+                // the stream never has two readers on the same stdout.
+                popup.location.href = "/preview?stream_id=" + encodeURIComponent(data.stream_id) + "&lang=" + encodeURIComponent(state.lang);
+                state.previewWindow = popup;
+                setPreviewLauncher(true);
+                startStreamWatch();
+            } else {
+                // Popup blocked -> fall back to the inline thumbnail.
+                dom.mjpegView.src = data.playback_url + "?t=" + Date.now();
+                setPreviewLauncher(false);
+                resetInlineFps();
+                if (state.inlineFpsTimer) clearInterval(state.inlineFpsTimer);
+                state.inlineFpsTimer = setInterval(updateInlineFps, 1000);
+            }
+            setStreamStatus(
+                t("stream.status_previewing") + " · " + body.width + "×" + body.height + " @ " + body.fps + " fps",
+                "ok"
+            );
+        } catch (e) {
+            if (popup) { try { popup.close(); } catch (_) { /* ignore */ } }
+            dom.btnStartStream.style.display = "";
+            dom.btnStartStream.disabled = false;
+            dom.streamPreviewWrap.style.display = "none";
+            if (e.status === 409) setStreamStatus(t("stream.status_busy") + ": " + e.message, "error");
+            else setStreamStatus(e.message || t("stream.status_error"), "error");
+        }
+    }
+
+    async function stopStream() {
+        const sid = state.streamId;
+        // Disconnect every viewer first so the server tears the pipeline down.
+        if (state.previewWindow) { try { state.previewWindow.close(); } catch (e) { /* ignore */ } }
+        state.previewWindow = null;
+        stopStreamWatch();
+        try { dom.mjpegView.removeAttribute("src"); } catch (e) { /* ignore */ }
+        if (sid) {
+            try { await streamPost("/api/stream/" + sid + "/stop", {}); } catch (e) { console.warn("stop failed:", e); }
+        }
+        handleStreamStopped();
+        setStreamStatus(t("stream.status_stopped"), "");
+    }
+
+    function updateStreamGate() {
+        const cam = state.selectedCamera;
+        const series = state.cameraSeries || "gx";
+        const isGx = series === "gx";
+        const isMv = series === "mv";
+        const hasCam = !!(cam && cam.video_node);
+        const cap = state.streamCap;   // GX only: 1=ROI, 2=Preset, null=unknown
+
+        // Live preview supports GX (UYVY) and MV/RAW (GREY); hide it otherwise.
+        if (dom.streamSection) dom.streamSection.style.display = (isGx || isMv) ? "" : "none";
+        if (!isGx && !isMv) return;
+
+        // MV/RAW has no VideoModeCap concept: hide the GX capability row.
+        if (dom.streamCapRow) dom.streamCapRow.style.display = isGx ? "" : "none";
+
+        const isPreset = isGx && hasCam && cap === 2;
+        const isRoi = hasCam && (isMv || cap === 1 || cap == null);
+
+        if (dom.streamPresetWrap) dom.streamPresetWrap.style.display = isPreset ? "" : "none";
+        if (dom.streamRoiWrap) dom.streamRoiWrap.style.display = isRoi ? "" : "none";
+        // For preset cameras the resolution is fixed by the selected sensor mode.
+        if (dom.streamWidth) dom.streamWidth.readOnly = isPreset;
+        if (dom.streamHeight) dom.streamHeight.readOnly = isPreset;
+
+        setStreamCapUI(isGx, hasCam, cap);
+
+        if (dom.streamHint) {
+            if (isMv) { dom.streamHint.textContent = t("stream.hint_mv"); dom.streamHint.className = "stream-hint"; }
+            else if (!hasCam) { dom.streamHint.textContent = t("stream.hint_no_camera"); dom.streamHint.className = "stream-hint"; }
+            else { dom.streamHint.textContent = t("stream.hint"); dom.streamHint.className = "stream-hint"; }
+        }
+        if (dom.streamControls) dom.streamControls.classList.toggle("stream-disabled", !hasCam);
+        if (dom.btnStartStream && !state.streamId) {
+            dom.btnStartStream.disabled = !hasCam;
+        }
+    }
+
+    function setStreamCapUI(isGx, hasCam, cap) {
+        const badge = dom.streamCapBadge, text = dom.streamCapText, btn = dom.btnStreamRedetect;
+        if (btn) btn.style.display = (isGx && hasCam) ? "" : "none";
+        if (!isGx || !hasCam) {
+            if (badge) { badge.textContent = "—"; badge.className = "stream-cap-badge cap-unknown"; }
+            if (text) text.textContent = "";
+            return;
+        }
+        if (cap === 1) {
+            if (badge) { badge.textContent = t("stream.cap_roi"); badge.className = "stream-cap-badge cap-roi"; }
+            if (text) text.textContent = t("stream.cap_text_roi");
+        } else if (cap === 2) {
+            if (badge) { badge.textContent = t("stream.cap_preset"); badge.className = "stream-cap-badge cap-preset"; }
+            if (text) text.textContent = t("stream.cap_text_preset");
+        } else {
+            if (badge) { badge.textContent = t("stream.cap_unknown"); badge.className = "stream-cap-badge cap-unknown"; }
+            if (text) text.textContent = t("stream.cap_text_unknown");
+        }
+    }
+
+    async function refreshStreamCaps() {
+        const cam = state.selectedCamera;
+        const series = state.cameraSeries || "gx";
+        const isGx = series === "gx";
+        const isMv = series === "mv";
+        const hasCam = !!(cam && cam.video_node);
+        state.streamPresetModes = [];
+        // Unknown series or no camera selected: nothing to detect or prefill.
+        if ((!isGx && !isMv) || !hasCam) {
+            state.streamCap = null; populateStreamPresetSelect(); updateStreamGate(); return;
+        }
+        if (dom.streamCapBadge) { dom.streamCapBadge.className = "stream-cap-badge cap-unknown"; dom.streamCapBadge.textContent = "…"; }
+        if (dom.streamCapText) dom.streamCapText.textContent = t("stream.cap_detecting");
+        const i2c = getEffectiveI2c();
+        let data = {};
+        try {
+            const url = "/api/stream/capabilities?platform=" + encodeURIComponent(state.platform)
+                + "&video_node=" + encodeURIComponent(cam.video_node)
+                + "&i2c_bus=" + encodeURIComponent(i2c.bus)
+                + "&i2c_addr=" + encodeURIComponent(i2c.addr)
+                + "&series=" + encodeURIComponent(series);
+            data = await apiGet(url);
+            state.streamCap = isGx ? ((data.video_mode_cap === 1 || data.video_mode_cap === 2) ? data.video_mode_cap : null) : null;
+            state.streamPresetModes = data.preset_modes || [];
+        } catch (e) {
+            console.warn("stream caps failed:", e);
+            state.streamCap = null;
+            state.streamPresetModes = [];
+        }
+        populateStreamPresetSelect();
+        applyStreamCurrent(data.current);
+        updateStreamGate();
+    }
+
+    // Prefill the Live Preview Width/Height/FPS + ROI offsets from the camera's
+    // current picture (read server-side), instead of the static 1920x1080@30
+    // defaults.  Preset cameras are driven by the preset selector, so skipped.
+    function applyStreamCurrent(cur) {
+        if (!cur || typeof cur !== "object") return;
+        if (state.streamCap === 2) return;
+        if (cur.width  && dom.streamWidth)  dom.streamWidth.value  = cur.width;
+        if (cur.height && dom.streamHeight) dom.streamHeight.value = cur.height;
+        if (typeof cur.fps === "number" && cur.fps > 0 && dom.streamFps) dom.streamFps.value = cur.fps;
+        if (Number.isFinite(cur.roi_x) && dom.streamRoiX) dom.streamRoiX.value = cur.roi_x;
+        if (Number.isFinite(cur.roi_y) && dom.streamRoiY) dom.streamRoiY.value = cur.roi_y;
+    }
+
+    function populateStreamPresetSelect() {
+        const sel = dom.streamPresetMode;
+        if (!sel) return;
+        sel.innerHTML = "";
+        const modes = state.streamPresetModes || [];
+        if (state.streamCap !== 2 || !modes.length) return;
+        const modeWord = state.lang === "zh" ? "模式" : "Mode";
+        modes.forEach((m) => {
+            const opt = document.createElement("option");
+            opt.value = String(m.mode);
+            opt.textContent = modeWord + " " + m.mode + " · " + m.width + "×" + m.height
+                + " @ " + m.fps + "fps" + (m.read_mode_name ? " · " + m.read_mode_name : "");
+            sel.appendChild(opt);
+        });
+        // Preselect the mode that matches the camera's current resolution.
+        const cam = state.selectedCamera || {};
+        let idx = 0;
+        for (let i = 0; i < modes.length; i++) {
+            if (cam.width && modes[i].width === cam.width && modes[i].height === cam.height) { idx = i; break; }
+        }
+        sel.selectedIndex = idx;
+        applyStreamPreset();
+    }
+
+    function applyStreamPreset() {
+        if (state.streamCap !== 2) return;
+        const sel = dom.streamPresetMode;
+        if (!sel || !sel.options.length) return;
+        const mode = parseInt(sel.value, 10);
+        const m = (state.streamPresetModes || []).find((x) => x.mode === mode);
+        if (!m) return;
+        if (dom.streamWidth) dom.streamWidth.value = m.width;
+        if (dom.streamHeight) dom.streamHeight.value = m.height;
+        if (dom.streamFps && m.fps) dom.streamFps.value = m.fps;
+    }
+
+    function setPreviewLauncher(inPopup) {
+        if (dom.streamPopupHint) dom.streamPopupHint.style.display = inPopup ? "" : "none";
+        if (dom.mjpegView) dom.mjpegView.style.display = inPopup ? "none" : "";
+    }
+
+    function openPreviewWindow(streamId) {
+        if (!streamId) return null;
+        const specs = "width=1040,height=760,menubar=no,toolbar=no,location=no,status=no,resizable=yes";
+        const url = "/preview?stream_id=" + encodeURIComponent(streamId) + "&lang=" + encodeURIComponent(state.lang);
+        let w = state.previewWindow;
+        if (w && !w.closed) { try { w.focus(); return w; } catch (e) { /* fallthrough */ } }
+        w = window.open(url, "veyeLivePreview", specs);
+        if (w) {
+            state.previewWindow = w;
+            setPreviewLauncher(true);
+            // Promoting to the popup: detach the inline consumer first.
+            try { dom.mjpegView.removeAttribute("src"); } catch (e) { /* ignore */ }
+            if (state.inlineFpsTimer) { clearInterval(state.inlineFpsTimer); state.inlineFpsTimer = null; }
+            if (dom.streamLiveFps) dom.streamLiveFps.style.display = "none";
+            startStreamWatch();
+        }
+        return w;
+    }
+
+    function startStreamWatch() {
+        if (state.streamWatchTimer) clearInterval(state.streamWatchTimer);
+        state.streamWatchTimer = setInterval(() => {
+            const w = state.previewWindow;
+            if (w && w.closed) handleStreamStopped();
+        }, 1000);
+    }
+
+    function stopStreamWatch() {
+        if (state.streamWatchTimer) { clearInterval(state.streamWatchTimer); state.streamWatchTimer = null; }
+    }
+
+    function handleStreamStopped() {
+        state.streamId = null;
+        stopStreamWatch();
+        if (state.previewWindow) { try { state.previewWindow.close(); } catch (e) { /* ignore */ } state.previewWindow = null; }
+        try { dom.mjpegView.removeAttribute("src"); } catch (e) { /* ignore */ }
+        setPreviewLauncher(false);
+        if (state.inlineFpsTimer) { clearInterval(state.inlineFpsTimer); state.inlineFpsTimer = null; }
+        if (dom.streamLiveFps) dom.streamLiveFps.style.display = "none";
+        dom.streamPreviewWrap.style.display = "none";
+        if (dom.btnOpenPreview) dom.btnOpenPreview.style.display = "none";
+        dom.btnStopStream.style.display = "none";
+        dom.btnStartStream.style.display = "";
+        dom.btnStartStream.disabled = false;
     }
 
     // ========== Init ==========
@@ -1323,6 +1686,7 @@
         await probeCameras();
         await loadGroups();
         showView("welcome");
+        updateStreamGate();
     }
 
     // Start

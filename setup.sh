@@ -244,6 +244,54 @@ fi
 mkdir -p "$PROJECT_DIR/logs"
 
 # ─────────────────────────────────────────────
+# 6. Live Preview capture/streaming dependencies (best-effort)
+# ─────────────────────────────────────────────
+# Live Preview (GX UYVY + MV GREY) runs:
+#   v4l2src -> videoconvert -> jpegenc -> multipartmux   (via gst-launch-1.0)
+# and configures the sensor with v4l2-ctl / media-ctl.  The MV/GREY path uses
+# the SAME plugins as GX (videoconvert in plugins-base, jpegenc+multipartmux in
+# plugins-good), so this covers both series with no extra GStreamer package.
+# Installing these is NON-FATAL: the studio's I2C control works without them;
+# only the web Live Preview needs them.
+ensure_capture_deps() {
+    local need_install=false
+    for bin in gst-launch-1.0 v4l2-ctl media-ctl; do
+        command -v "$bin" &>/dev/null || need_install=true
+    done
+    if ! $need_install; then
+        info "Live Preview capture tools already present"
+        return 0
+    fi
+    local CAPTURE_PKGS=(
+        gstreamer1.0-tools
+        gstreamer1.0-plugins-base
+        gstreamer1.0-plugins-good
+        v4l-utils
+    )
+    if ! command -v apt-get &>/dev/null; then
+        warn "apt-get not found; for Live Preview install manually: ${CAPTURE_PKGS[*]}"
+        return 0
+    fi
+    echo "  Installing Live Preview capture/streaming packages..."
+    local SUDO=""
+    if command -v sudo &>/dev/null; then SUDO="sudo -n"; fi
+    # shellcheck disable=SC2086
+    $SUDO apt-get update -y 2>/dev/null \
+        || warn "apt-get update needs sudo/password; skipped"
+    # shellcheck disable=SC2086
+    $SUDO apt-get install -y "${CAPTURE_PKGS[@]}" 2>/dev/null \
+        || warn "Could not auto-install capture deps. Manual: sudo apt install ${CAPTURE_PKGS[*]}"
+    for bin in gst-launch-1.0 v4l2-ctl media-ctl; do
+        if command -v "$bin" &>/dev/null; then
+            info "$bin available"
+        else
+            warn "$bin missing - Live Preview unavailable until installed"
+        fi
+    done
+}
+ensure_capture_deps || true
+
+# ─────────────────────────────────────────────
 # Done
 # ─────────────────────────────────────────────
 echo ""

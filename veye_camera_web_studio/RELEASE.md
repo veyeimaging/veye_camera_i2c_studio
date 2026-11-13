@@ -1,5 +1,32 @@
 # Release Log
 
+## v0.4.0 (2026-11-13)
+
+### New Features
+- **Live Preview (MJPEG over HTTP)**: Real-time preview for the GX series (UYVY) and MV/RAW series (8-bit GREY)
+  - Four-layer architecture under `app/streaming/`: Stage-0 Configurator (per-platform media-ctl/v4l2-ctl setup for Jetson, RPi 4/5, RK3588), Stage-1 Provider (format conversion), Stage-2 Transport (MJPEG multipart), Stage-3 StreamService (pipeline lifecycle, device-exclusive ownership, teardown on disconnect)
+  - New `/api/stream` router (capabilities / configure / start / stop / status); pipelines shut down cleanly on app exit
+  - Standalone `GET /preview` page is the single MJPEG consumer (popup), with an inline fallback when the popup is blocked
+  - Server-side measured framerate (rolling 1s window) shown in the preview UI
+  - `setup.sh` adds a non-fatal `ensure_capture_deps` step (GStreamer + v4l-utils)
+- **Live Preview prefills current ROI + framerate**: the panel reads the camera's live ROI (offset X/Y, width, height) and frame rate and fills them in instead of a fixed 1920x1080@30 (MV/RAW always; GX in ROI mode; preset cameras keep using the preset selector)
+
+### Bug Fixes
+- Live Preview no longer defaults to 1920x1080@30 — reads the live ROI (0x0820/0x0824/0x0818/0x081C) and fps (MV 0x0814/100, GX 0x0850/10000) registers to prefill the fields
+
+### Files Modified
+- `app/streaming/` — New four-layer live-preview subsystem (configurators / providers / transports / util)
+- `app/services/stream_service.py` — Stream orchestration + `read_current_picture()` ROI/fps prefill
+- `app/api/stream.py` — New `/api/stream` router
+- `app/templates/preview.html` — Standalone MJPEG popup consumer
+- `app/static/app.js` — Live Preview panel, capability detection, ROI/fps prefill
+- `app/static/style.css` — Live Preview panel styles
+- `main.py` — Registers stream router + lifespan shutdown; version bump to 0.4.0
+- `../setup.sh` — Added `ensure_capture_deps` (GStreamer + v4l-utils, non-fatal)
+- `app/templates/index.html` — Version display and cache busting update
+
+---
+
 ## v0.3.1 (2026-11-07)
 
 ### New Features
@@ -33,7 +60,6 @@
 - `scripts/generate_commands.py` — Updated slowshutter and workmode source definitions
 - `main.py` — Version bump to 0.3.1
 - `app/templates/index.html` — Version display and cache busting update
-
 ---
 
 ## v0.3.0 (2026-11-05)

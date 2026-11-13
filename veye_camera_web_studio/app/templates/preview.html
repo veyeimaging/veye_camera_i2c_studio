@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEYE Live Preview</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --panel: #1a1d27;
+            --panel2: #242736;
+            --border: #2d3142;
+            --text: #e4e6eb;
+            --text2: #a0a3b1;
+            --muted: #6b6e7b;
+            --accent: #4f8ff7;
+            --danger: #e05252;
+        }
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg: #f5f6f8; --panel: #ffffff; --panel2: #f0f1f4; --border: #d1d5db;
+                --text: #1f2937; --text2: #4b5563; --muted: #9ca3af; --accent: #3b72d4;
+            }
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0; background: var(--bg); color: var(--text);
+            font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+            display: flex; flex-direction: column;
+        }
+        header {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        header .brand { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+        header .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+        header .brand.live .dot { background: #35c46f; box-shadow: 0 0 8px #35c46f; }
+        header .meta { color: var(--text2); font-size: 13px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+        header .spacer { flex: 1; }
+        .btn {
+            border: 1px solid var(--border); background: var(--panel2); color: var(--text);
+            padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;
+            transition: 0.2s ease;
+        }
+        .btn:hover { border-color: var(--muted); }
+        .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+        .btn-danger:hover { filter: brightness(1.1); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        main {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            background: #000; position: relative; overflow: hidden; min-height: 0;
+        }
+        #stream { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+        .overlay {
+            position: absolute; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 10px; color: var(--text2);
+            background: rgba(0,0,0,0.55); text-align: center; padding: 20px;
+        }
+        .overlay.hidden { display: none; }
+        .overlay .big { font-size: 18px; color: var(--text); }
+        .overlay pre {
+            max-width: 80%; max-height: 30vh; overflow: auto; text-align: left;
+            background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+            padding: 10px; font-size: 12px; color: #ffb4b4; white-space: pre-wrap;
+        }
+        footer {
+            padding: 6px 16px; background: var(--panel); border-top: 1px solid var(--border);
+            font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 10px;
+        }
+        #status { color: var(--text2); }
+        .live-fps {
+            font-size: 13px; font-weight: 600; font-family: ui-monospace, Menlo, Consolas, monospace;
+            color: #35c46f; padding: 2px 9px; border-radius: 4px; white-space: nowrap;
+            background: rgba(53,196,111,0.12); border: 1px solid rgba(53,196,111,0.3);
+            min-width: 64px; text-align: center;
+        }
+        .live-fps.stall { color: #ffb4b4; background: rgba(224,82,82,0.15); border-color: rgba(224,82,82,0.35); }
+    </style>
+</head>
+<body>
+    <header>
+        <span class="brand" id="brand"><span class="dot"></span><span id="title">VEYE Live Preview</span></span>
+        <span class="meta" id="meta"></span>
+        <span class="live-fps" id="liveFps">— fps</span>
+        <span class="spacer"></span>
+        <button class="btn" id="btnReconnect" style="display:none;"></button>
+        <button class="btn btn-danger" id="btnStop"></button>
+    </header>
+    <main>
+        <img id="stream" alt="live preview">
+        <div class="overlay" id="overlay">
+            <div class="big" id="overlayMsg">Connecting…</div>
+            <pre id="overlayErr" style="display:none;"></pre>
+        </div>
+    </main>
+    <footer>
+        <span id="status"></span>
+    </footer>
+
+    <script>
+    (function () {
+        "use strict";
+        const qs = new URLSearchParams(location.search);
+        const streamId = qs.get("stream_id");
+        let lang = (qs.get("lang") || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en"));
+
+        const I18N = {
+            title:       { en: "VEYE Live Preview",        zh: "VEYE 实时预览" },
+            connecting:  { en: "Connecting…",              zh: "正在连接…" },
+            previewing:  { en: "Previewing",               zh: "预览中" },
+            stopped:     { en: "Preview stopped",          zh: "预览已停止" },
+            ended:       { en: "Stream ended",             zh: "预览已结束" },
+            notFound:    { en: "Stream not found (already stopped?)", zh: "未找到该预览流（可能已停止）" },
+            stop:        { en: "Stop Preview",             zh: "停止预览" },
+            reconnect:   { en: "Reconnect",                zh: "重新连接" },
+            closeHint:   { en: "Closing this window stops the stream.", zh: "关闭本窗口即停止预览。" },
+            errFailed:   { en: "Failed to start/stream",   zh: "启动/取流失败" },
+            uptime:      { en: "uptime",                   zh: "运行时长" },
+        };
+        function t(k) { return (I18N[k] && (I18N[k][lang] || I18N[k].en)) || k; }
+
+        const el = {
+            brand: document.getElementById("brand"),
+            title: document.getElementById("title"),
+            meta: document.getElementById("meta"),
+            btnStop: document.getElementById("btnStop"),
+            btnReconnect: document.getElementById("btnReconnect"),
+            stream: document.getElementById("stream"),
+            overlay: document.getElementById("overlay"),
+            overlayMsg: document.getElementById("overlayMsg"),
+            overlayErr: document.getElementById("overlayErr"),
+            status: document.getElementById("status"),
+            liveFps: document.getElementById("liveFps"),
+        };
+
+        function applyStatic() {
+            el.title.textContent = t("title");
+            el.btnStop.textContent = t("stop");
+            el.btnReconnect.textContent = t("reconnect");
+            document.title = t("title");
+            el.status.textContent = t("closeHint");
+        }
+
+        let alive = false;
+        let stoppedByUser = false;
+
+        // ---- Live FPS: read the server-measured rate (frame boundaries the
+        // pipeline actually delivered to this viewer) via the status endpoint. ----
+        function setLiveFps(mf) {
+            const v = (typeof mf === "number" && mf > 0) ? mf : 0;
+            el.liveFps.textContent = (v ? v.toFixed(1) : "0") + " fps";
+            el.liveFps.classList.toggle("stall", alive && v <= 0.05);
+        }
+
+        function showOverlay(msg, errText) {
+            el.overlay.classList.remove("hidden");
+            el.overlayMsg.textContent = msg;
+            if (errText) { el.overlayErr.style.display = ""; el.overlayErr.textContent = errText; }
+            else { el.overlayErr.style.display = "none"; el.overlayErr.textContent = ""; }
+        }
+        function hideOverlay() { el.overlay.classList.add("hidden"); }
+
+        function attach() {
+            showOverlay(t("connecting"));
+            el.btnReconnect.style.display = "none";
+            el.brand.classList.remove("live");
+            alive = true;
+            setLiveFps(0);
+            // The <img> is the single MJPEG consumer for this stream.
+            el.stream.src = "/api/stream/" + encodeURIComponent(streamId) + "/mjpeg?t=" + Date.now();
+            refreshStatus();
+        }
+
+        function setMeta(st) {
+            if (!st) { el.meta.textContent = ""; return; }
+            const parts = [];
+            if (st.width && st.height) parts.push(st.width + "×" + st.height);
+            if (st.fps) parts.push(st.fps + " fps");
+            if (st.transport) parts.push(st.transport.toUpperCase());
+            if (st.platform) parts.push(st.platform);
+            if (st.uptime_s != null) parts.push(t("uptime") + " " + st.uptime_s + "s");
+            el.meta.textContent = parts.join("  ·  ");
+            setLiveFps(st.measured_fps);
+        }
+
+        async function refreshStatus() {
+            try {
+                const res = await fetch("/api/stream/" + encodeURIComponent(streamId) + "/status");
+                if (res.status === 404) { onEnded(t("notFound"), ""); return; }
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const st = await res.json();
+                setMeta(st);
+                if (!st.alive) {
+                    const tail = (st.stderr_tail || []).join("\n");
+                    onEnded(t("ended"), tail);
+                } else {
+                    hideOverlay();
+                    el.brand.classList.add("live");
+                }
+            } catch (e) {
+                onEnded(t("errFailed"), String(e && e.message || e));
+            }
+        }
+
+        function onEnded(msg, errText) {
+            alive = false;
+            el.brand.classList.remove("live");
+            el.liveFps.textContent = "0 fps";
+            el.liveFps.classList.add("stall");
+            try { el.stream.removeAttribute("src"); } catch (e) {}
+            showOverlay(msg, errText);
+            if (!stoppedByUser) el.btnReconnect.style.display = "";
+        }
+
+        async function stopAndClose() {
+            stoppedByUser = true;
+            el.btnStop.disabled = true;
+            try { el.stream.removeAttribute("src"); } catch (e) {}
+            try {
+                await fetch("/api/stream/" + encodeURIComponent(streamId) + "/stop", { method: "POST" });
+            } catch (e) { /* ignore */ }
+            showOverlay(t("stopped"));
+            el.btnReconnect.style.display = "none";
+            // Give the parent a moment, then close the popup.
+            setTimeout(() => { try { window.close(); } catch (e) {} }, 400);
+        }
+
+        el.btnStop.addEventListener("click", stopAndClose);
+        el.btnReconnect.addEventListener("click", () => { stoppedByUser = false; attach(); });
+
+        // Notify the opener when this window is going away (it also closes the
+        // server-side stream when the MJPEG consumer disconnects).
+        window.addEventListener("pagehide", () => { /* consumer disconnect handles teardown */ });
+
+        applyStatic();
+
+        if (!streamId) {
+            applyStatic();
+            showOverlay(t("notFound"));
+            el.btnStop.disabled = true;
+        } else {
+            attach();
+            // Poll status ~1s for a responsive measured-FPS + uptime readout.
+            setInterval(() => { if (alive && !stoppedByUser) refreshStatus(); }, 1000);
+        }
+    })();
+    </script>
+</body>
+</html>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VEYE Camera Web Studio</title>
-    <link rel="stylesheet" href="/static/style.css?v=20261107">
+    <link rel="stylesheet" href="/static/style.css?v=20261113h">
 </head>
 <body>
     <!-- Header -->
@@ -12,7 +12,7 @@
         <div class="header-left">
             <img src="/static/logo.png" alt="VEYE" class="header-logo">
             <h1 class="logo">VEYE Camera Web Studio</h1>
-            <span class="version">v0.3.1</span>
+            <span class="version">v0.4.0</span>
         </div>
         <div class="header-right">
             <button class="theme-btn" id="btnThemeToggle" title="Toggle theme">🌙</button>
@@ -137,6 +137,60 @@
                     <button class="btn btn-sm btn-outline" id="btnRescan">
                          <span data-i18n="device.rescan">Rescan</span>
                     </button>
+                </div>
+            </section>
+
+            <!-- Live Preview (GX series / UYVY only) -->
+            <section class="panel-section stream-section" id="streamSection">
+                <h2 class="section-title">
+                    <span class="icon">📹</span> <span data-i18n="stream.title">Live Preview</span>
+                </h2>
+                <div class="stream-hint" id="streamHint" data-i18n="stream.hint">Real-time MJPEG preview of the GX camera (UYVY).</div>
+                <div class="stream-controls" id="streamControls">
+                    <div class="stream-cap-row" id="streamCapRow">
+                        <span class="stream-cap-badge cap-unknown" id="streamCapBadge">—</span>
+                        <span class="stream-cap-text" id="streamCapText"></span>
+                        <button class="btn btn-sm btn-outline stream-cap-redetect" id="btnStreamRedetect" data-i18n-title="stream.redetect" title="Re-detect">↻</button>
+                    </div>
+                    <div class="param-field" id="streamPresetWrap" style="display:none;">
+                        <label data-i18n="stream.preset_mode">Preset Mode</label>
+                        <select id="streamPresetMode"></select>
+                    </div>
+                    <div class="param-field stream-roi" id="streamRoiWrap" style="display:none;">
+                        <label data-i18n="stream.roi_x">ROI X</label>
+                        <input type="number" id="streamRoiX" value="0" min="0" max="8192" step="8">
+                        <label data-i18n="stream.roi_y">ROI Y</label>
+                        <input type="number" id="streamRoiY" value="0" min="0" max="8192" step="8">
+                    </div>
+                    <div class="param-field">
+                        <label data-i18n="stream.width">Width</label>
+                        <input type="number" id="streamWidth" value="1920" min="1" max="8192" step="1">
+                    </div>
+                    <div class="param-field">
+                        <label data-i18n="stream.height">Height</label>
+                        <input type="number" id="streamHeight" value="1080" min="1" max="8192" step="1">
+                    </div>
+                    <div class="param-field">
+                        <label data-i18n="stream.fps">FPS</label>
+                        <input type="number" id="streamFps" value="30" min="1" max="120" step="0.1">
+                    </div>
+                    <div class="param-field">
+                        <label data-i18n="stream.quality">JPEG Quality</label>
+                        <input type="number" id="streamQuality" value="85" min="1" max="100" step="1">
+                    </div>
+                    <div class="stream-actions">
+                        <button class="btn btn-sm btn-primary" id="btnStartStream" data-i18n="stream.start">Start Preview</button>
+                        <button class="btn btn-sm btn-outline" id="btnOpenPreview" style="display:none;" data-i18n="stream.popup">Open Preview Window</button>
+                        <button class="btn btn-sm btn-outline" id="btnStopStream" style="display:none;" data-i18n="stream.stop">Stop</button>
+                    </div>
+                </div>
+                <div class="stream-preview" id="streamPreviewWrap" style="display:none;">
+                    <div class="stream-popup-hint" id="streamPopupHint" style="display:none;">
+                        <span>🖵</span> <span data-i18n="stream.popup_hint">Preview is shown in a separate window.</span>
+                    </div>
+                    <img id="mjpegView" alt="Live preview">
+                    <span class="stream-live-fps" id="streamLiveFps" style="display:none;">0 fps</span>
+                    <div class="stream-status" id="streamStatus"></div>
                 </div>
             </section>
         </aside>
@@ -264,6 +318,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=20261109"></script>
+    <script src="/static/app.js?v=20261113h"></script>
 </body>
 </html>

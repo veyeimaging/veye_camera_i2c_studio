@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-11-13
+
+### Added
+- **Live Preview (MJPEG over HTTP)**: New real-time preview subsystem supporting both the GX series (UYVY) and the MV/RAW series (8-bit GREY)
+  - Four-layer architecture under `app/streaming/`: Stage-0 Configurator (per-platform `media-ctl`/`v4l2-ctl`/`config_camera-rpi5.sh` setup for Jetson, Raspberry Pi (4/5), Rockchip RK3588), Stage-1 Provider (format conversion), Stage-2 Transport (MJPEG multipart stream), Stage-3 `StreamService` (pipeline lifecycle, device-exclusive ownership, teardown on disconnect)
+  - New `/api/stream` router (capabilities / configure / start / stop / status) with clean pipeline shutdown on app exit
+  - Standalone `GET /preview` page is the single MJPEG consumer (popup window), with an inline fallback when the popup is blocked
+  - Server-side measured framerate (rolling 1-second window) surfaced in the preview UI
+  - Non-fatal `ensure_capture_deps` step in `setup.sh` installs GStreamer + v4l-utils for GX/MV capture (warns but does not abort when `sudo` is unavailable)
+- **Live Preview prefills current ROI + framerate**: The panel now reads the camera's actual ROI (offset X/Y, width, height) and frame rate and fills them into the controls instead of always defaulting to 1920x1080@30
+  - Applies to MV/RAW (always ROI) and to GX in ROI mode (VideoModeCap = 1); GX preset cameras continue to be driven by the preset selector
+
+### Fixed
+- **MV/GX Live Preview ROI default**: The preview panel no longer shows a fixed 1920x1080@30; it reads the live `roi` registers (0x0820/0x0824/0x0818/0x081C -> X/Y/W/H) and `fps` (MV 0x0814/100, GX 0x0850/10000) and prefills width/height/fps/ROI offsets
+
+### Files Modified
+- `veye_camera_web_studio/app/streaming/` - New four-layer live-preview subsystem (configurators / providers / transports / util)
+- `veye_camera_web_studio/app/services/stream_service.py` - Stage-3 orchestration + `read_current_picture()` ROI/fps prefill
+- `veye_camera_web_studio/app/api/stream.py` - New `/api/stream` router
+- `veye_camera_web_studio/app/templates/preview.html` - Standalone MJPEG popup consumer
+- `veye_camera_web_studio/app/static/app.js` - Live Preview panel, capability detection, ROI/fps prefill
+- `veye_camera_web_studio/app/static/style.css` - Live Preview panel styles
+- `veye_camera_web_studio/main.py` - Registers stream router + lifespan shutdown; version bump to 0.4.0
+- `setup.sh` - Added `ensure_capture_deps` (GStreamer + v4l-utils, non-fatal)
+- `veye_camera_web_studio/app/templates/index.html` - Version display and cache busting update
+
+---
+
 ## [0.3.1] - 2026-11-07
 
 ### Added
@@ -25,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added register info (0x0CBC, 0x0CC0) back to notes
   - Notes now support multi-line display (`white-space: pre-wrap`)
 - **Workmode Naming**: Renamed "脉冲触发" (Pulse Trigger) to "电平触发" (Pulse Trigger Mode) for mode 3
-- **Slow Shutter Read Display**: Fixed gain threshold display — now shows correct dB value (register / 10) instead of raw register value
+- **Slow Shutter Read Display**: Fixed gain threshold display - now shows correct dB value (register / 10) instead of raw register value
 
 ### Fixed
 - **Slow Shutter Parameter Validation**: Setting gain threshold to values above 409.5 no longer fails
@@ -33,13 +61,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Parameter Population**: After reading slowshutter, input field correctly populates with 600 instead of raw value 6000
 
 ### Files Modified
-- `veye_camera_web_studio/app/static/app.js` — Added trigger_sync filtering, workmode banner, slowshutter display fix
-- `veye_camera_web_studio/app/static/style.css` — Added `white-space: pre-wrap` for notes, workmode banner styles
-- `veye_camera_web_studio/config/gx_commands.json` — Updated slowshutter and workmode definitions
-- `veye_camera_web_studio/scripts/generate_commands.py` — Updated slowshutter and workmode source definitions
-- `veye_camera_web_studio/main.py` — Version bump to 0.3.1
-- `veye_camera_web_studio/app/templates/index.html` — Version display and cache busting update
-
+- `veye_camera_web_studio/app/static/app.js` - Added trigger_sync filtering, workmode banner, slowshutter display fix
+- `veye_camera_web_studio/app/static/style.css` - Added `white-space: pre-wrap` for notes, workmode banner styles
+- `veye_camera_web_studio/config/gx_commands.json` - Updated slowshutter and workmode definitions
+- `veye_camera_web_studio/scripts/generate_commands.py` - Updated slowshutter and workmode source definitions
+- `veye_camera_web_studio/main.py` - Version bump to 0.3.1
+- `veye_camera_web_studio/app/templates/index.html` - Version display and cache busting update
 ---
 
 ## [0.3.0] - 2026-11-05
@@ -220,6 +247,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | Raspberry Pi 4 | ⚠️ Untested | Scripts available, needs validation |
 | Rockchip RK3588 | ✅ Full Support | Tested on Orange Pi CM5 |
 
+[0.4.0]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/yourusername/veye_camera_i2c_studio/compare/v0.1.3...v0.2.0

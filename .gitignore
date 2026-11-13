@@ -94,3 +94,6 @@ local_settings.py
 # 系统文件
 .DS_Store
 Thumbs.db
+# Runtime operation logs
+veye_camera_web_studio/logs/
+*.jsonl

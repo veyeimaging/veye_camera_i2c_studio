@@ -1,27 +1,113 @@
+
 name: Sync to Gitee (Organization)
 
 on:
   push:
     branches:
-      - main  # 或 master，取决于你主分支的名字
+      - main
+
+# 避免短时间内多个同步任务同时执行
+concurrency:
+  group: sync-to-gitee
+  cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-              fetch-depth: 0
+          fetch-depth: 0
 
-      - name: Mirror push to Gitee (org repo)
+      # 1. 网络诊断
+      - name: Diagnose Gitee Network
+        run: |
+          echo "===== DNS Resolution ====="
+          getent ahosts gitee.com || true
+
+          echo "===== TCP Port 443 ====="
+          timeout 10 bash -c '</dev/tcp/gitee.com/443' \
+            && echo "TCP CONNECT OK" \
+            || echo "TCP CONNECT FAILED"
+
+          echo "===== HTTPS Test ====="
+          curl -Iv \
+            --connect-timeout 15 \
+            --max-time 30 \
+            https://gitee.com/ \
+            2>&1 || true
+
+      # 2. Git 配置
+      - name: Configure Git
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           git config --global user.name "mmxuxp"
           git config --global user.email "xumm@veye.cc"
-          # 添加 Gitee 的组织仓库地址 
-          git remote add gitee https://mmxuxp:${{ secrets.GITEE_TOKEN }}@gitee.com/veyeimaging/veye_camera_i2c_studio.git
-          # 推送源码
-          git push -f gitee HEAD:main
-          # 可选：推送标签
-          git push -f gitee --tags
+
+          git remote add gitee \
+            https://gitee.com/veyeimaging/veye_camera_i2c_studio.git
+
+          # 配置 HTTPS 认证，避免 Token 写入 remote URL
+          cat > "$RUNNER_TEMP/gitee-askpass.sh" <<'EOF'
+          #!/bin/sh
+          case "$1" in
+            *Username*) echo "mmxuxp" ;;
+            *Password*) echo "$GITEE_TOKEN" ;;
+            *) exit 1 ;;
+          esac
+          EOF
+
+          chmod 700 "$RUNNER_TEMP/gitee-askpass.sh"
+
+          echo "GIT_ASKPASS=$RUNNER_TEMP/gitee-askpass.sh" >> "$GITHUB_ENV"
+          echo "GIT_TERMINAL_PROMPT=0" >> "$GITHUB_ENV"
+
+      # 3. 同步分支和标签
+      - name: Mirror push to Gitee
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          MAX_RETRIES=3
+          SUCCESS=0
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "===== Gitee Push Attempt $i/$MAX_RETRIES ====="
+
+            if git -c http.connectTimeout=30 \
+                   -c http.lowSpeedLimit=1000 \
+                   -c http.lowSpeedTime=60 \
+                   push --force gitee HEAD:refs/heads/main; then
+
+              echo "Branch push successful"
+
+              if git -c http.connectTimeout=30 \
+                     -c http.lowSpeedLimit=1000 \
+                     -c http.lowSpeedTime=60 \
+                     push --force gitee --tags; then
+
+                echo "Tag push successful"
+                SUCCESS=1
+                break
+              fi
+
+              echo "Tag push failed"
+            else
+              echo "Branch push failed"
+            fi
+
+            if [ "$i" -lt "$MAX_RETRIES" ]; then
+              echo "Retrying in 15 seconds..."
+              sleep 15
+            fi
+          done
+
+          if [ "$SUCCESS" -ne 1 ]; then
+            echo "ERROR: Gitee synchronization failed"
+            exit 1
+          fi
+
+          echo "===== Gitee Synchronization Completed ====="

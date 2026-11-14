@@ -30,16 +30,45 @@ echo ""
 # Auto-detect region, or force via REGION environment variable
 # REGION=cn for China mirrors, REGION=global for official PyPI
 
+# Measure how fast a host is reachable (seconds); prints 999 on failure/timeout.
+probe_latency() {
+    local url="$1" timeout="${2:-5}" t
+    t=$(curl -s -o /dev/null -m "$timeout" -w '%{time_total}' "$url" 2>/dev/null) || t=999
+    case "$t" in
+        ''|*[!0-9.]*) t=999 ;;
+    esac
+    echo "$t"
+}
+
 setup_pip_mirror() {
     local region="${REGION:-auto}"
     
     if [ "$region" = "auto" ]; then
-        # Auto-detect based on timezone
-        local timezone=$(cat /etc/timezone 2>/dev/null || echo "")
-        if [[ "$timezone" == *"Shanghai"* ]] || [[ "$timezone" == *"Chongqing"* ]] || [[ "$timezone" == *"Asia/China"* ]]; then
+        # Timezone is only a HINT: many domestic boards ship with a wrong/UTC
+        # timezone, so trusting it alone silently picks the slow global PyPI.
+        local timezone
+        timezone=$(cat /etc/timezone 2>/dev/null \
+            || timedatectl show --property=Timezone --value 2>/dev/null \
+            || echo "")
+        if [[ "$timezone" == *"Shanghai"* ]] || [[ "$timezone" == *"Chongqing"* ]] || [[ "$timezone" == *"Asia/Hong"* ]]; then
             region="cn"
+            REGION_SOURCE="timezone"
+        elif command -v curl &>/dev/null; then
+            # Otherwise decide by real reachability, not the (possibly wrong) clock.
+            echo "  Probing mirror latency (network check)..."
+            local t_cn t_global
+            t_cn=$(probe_latency "https://pypi.tuna.tsinghua.edu.cn/simple/")
+            t_global=$(probe_latency "https://pypi.org/simple/")
+            if awk -v c="$t_cn" -v g="$t_global" 'BEGIN{exit !(c+0 <= g+0)}'; then
+                region="cn"
+            else
+                region="global"
+            fi
+            REGION_SOURCE="latency probe (CN=${t_cn}s, Global=${t_global}s)"
         else
             region="global"
+            REGION_SOURCE="default (no curl to probe)"
+            warn "Cannot auto-detect region; set REGION=cn for a domestic board"
         fi
     fi
     
@@ -47,16 +76,22 @@ setup_pip_mirror() {
         cn|china|CN)
             PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple"
             PIP_TRUSTED_HOST="pypi.tuna.tsinghua.edu.cn"
+            PIP_ALT_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+            PIP_ALT_TRUSTED_HOST="mirrors.aliyun.com"
+            PIP_ALT_NAME="Aliyun"
             REGION_NAME="China (Tsinghua Mirror)"
             ;;
         *)
             PIP_INDEX_URL="https://pypi.org/simple"
             PIP_TRUSTED_HOST="pypi.org"
+            PIP_ALT_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple"
+            PIP_ALT_TRUSTED_HOST="pypi.tuna.tsinghua.edu.cn"
+            PIP_ALT_NAME="Tsinghua"
             REGION_NAME="Global (Official PyPI)"
             ;;
     esac
     
-    echo "  Region: $REGION_NAME"
+    echo "  Region: $REGION_NAME${REGION_SOURCE:+ [$REGION_SOURCE]}"
 }
 
 # ─────────────────────────────────────────────
@@ -211,27 +246,14 @@ else
         else
             # Try 3: Alternative mirror
             warn "Standard installation failed, trying alternative mirror..."
-            echo "  [Attempt 3/3] Trying alternative mirror..."
-            
-            if [ "$region" = "cn" ]; then
-                echo "  Switching to Aliyun mirror..."
-                $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
-                    --index-url "https://mirrors.aliyun.com/pypi/simple/" \
-                    --trusted-host "mirrors.aliyun.com" \
-                    --timeout 60 --retries 5 \
-                    --prefer-binary \
-                    $($USE_VENV || echo "--break-system-packages --user") \
-                    || fail "Failed to install dependencies from Aliyun mirror"
-            else
-                echo "  Switching to Tsinghua mirror..."
-                $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
-                    --index-url "https://pypi.tuna.tsinghua.edu.cn/simple" \
-                    --trusted-host "pypi.tuna.tsinghua.edu.cn" \
-                    --timeout 60 --retries 5 \
-                    --prefer-binary \
-                    $($USE_VENV || echo "--break-system-packages --user") \
-                    || fail "Failed to install dependencies from Tsinghua mirror"
-            fi
+            echo "  [Attempt 3/3] Trying alternative mirror ($PIP_ALT_NAME)..."
+            $PIP_CMD install -r "$PROJECT_DIR/requirements.txt" \
+                --index-url "$PIP_ALT_INDEX_URL" \
+                --trusted-host "$PIP_ALT_TRUSTED_HOST" \
+                --timeout 60 --retries 5 \
+                --prefer-binary \
+                $($USE_VENV || echo "--break-system-packages --user") \
+                || fail "Failed to install dependencies from $PIP_ALT_NAME mirror"
             info "Dependencies installed (alternative mirror)"
         fi
     fi
@@ -250,6 +272,46 @@ fi
 # 5. Create logs directory
 # ─────────────────────────────────────────────
 mkdir -p "$PROJECT_DIR/logs"
+
+# ─────────────────────────────────────────────
+# 5b. Ensure the current user can access /dev/i2c-*
+# ─────────────────────────────────────────────
+# I2C device nodes are owned by root:i2c with mode 0660 on Debian/Ubuntu-based
+# boards (Rockchip/Jetson images included). A user outside the i2c group cannot
+# open them, so every register read/write fails with an unhelpful empty error.
+ensure_i2c_group() {
+    echo ""
+    echo "--- Checking I2C access ---"
+    local user="${SUDO_USER:-$USER}"
+
+    if id -nG "$user" 2>/dev/null | tr ' ' '\n' | grep -qx i2c; then
+        info "User '$user' is already in the i2c group"
+        return 0
+    fi
+
+    if ! getent group i2c >/dev/null 2>&1; then
+        warn "No 'i2c' group on this system; skipping (run the server as root if needed)"
+        return 0
+    fi
+
+    local SUDO="sudo"
+    command -v sudo >/dev/null 2>&1 || SUDO=""
+    if [ -z "$SUDO" ] && [ "$(id -u)" != "0" ]; then
+        warn "Cannot change group membership (no sudo, not root)."
+        warn "Manual: sudo usermod -aG i2c $user  (then re-login)"
+        return 0
+    fi
+
+    echo "  Adding '$user' to the i2c group..."
+    if $SUDO usermod -aG i2c "$user" 2>/dev/null; then
+        info "Added '$user' to the i2c group"
+        warn "Group membership applies only in a NEW login session."
+        warn "  -> Reconnect SSH (or reboot), then relaunch: ./setup.sh --start"
+        warn "  -> Or apply it in this shell right now:      newgrp i2c"
+    else
+        warn "Could not auto-add. Manual: sudo usermod -aG i2c $user  (then re-login)"
+    fi
+}
 
 # ─────────────────────────────────────────────
 # 6. Live Preview capture/streaming dependencies (best-effort)
@@ -298,6 +360,7 @@ ensure_capture_deps() {
     done
 }
 ensure_capture_deps || true
+ensure_i2c_group || true
 
 # ─────────────────────────────────────────────
 # Done

@@ -36,6 +36,7 @@ import threading
 import time
 import uuid
 from collections import OrderedDict, deque
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -77,6 +78,11 @@ _STARTUP_PROBE_S = 1.5
 # How many finished streams keep their last status, so a post-mortem poll can
 # still learn *why* the pipeline ended.
 _FINISHED_KEEP = 8
+# Concurrent live previews allowed.  Every stream holds one long-lived HTTP
+# connection on the browser side (HTTP/1.1 caps an origin at ~6) and one
+# gst-launch process on the board, so the useful ceiling is set by the viewer
+# rather than by this service.  Raise only together with a dedicated stream port.
+_MAX_STREAMS = 4
 # Substrings that mark a gst stderr line as the concrete cause of a failure.
 # ``gst-launch`` prints the generic "ERROR: ... Internal data stream error." first
 # and the actionable detail (S_FMT refusal, EBUSY, negotiation result) in the
@@ -85,6 +91,15 @@ _FINISHED_KEEP = 8
 _CAUSE_HINTS = (
     "busy", "not-negotiated", "s_fmt", "set pixformat", "denied", "permission",
     "unsupported", "failed", "could not", "no such", "not found", "reason ",
+)
+
+# Dedicated pool for MJPEG stdout reads.  ``os.read`` on a pipeline blocks until
+# the next frame, so every live stream parks one worker for its whole lifetime.
+# Sharing Starlette's default threadpool instead would let N previews starve the
+# synchronous endpoints that need that same pool (``/start`` itself holds a worker
+# through its 1.5s startup probe and the global I2C lock).
+_READER_POOL = ThreadPoolExecutor(
+    max_workers=_MAX_STREAMS * 2, thread_name_prefix="mjpeg-read"
 )
 
 
@@ -99,6 +114,9 @@ class ActiveStream:
     media_type: str
     started_at: float
     state: StreamState = StreamState.RUNNING
+    # Human-readable camera name shown in the multi-window UI (several popups
+    # are otherwise indistinguishable in the window list).
+    label: str = ""
     stderr_tail: deque = field(default_factory=lambda: deque(maxlen=200))
     # Process exit status + last gst error line, filled in once the pipeline is
     # gone.  ``None`` while it is still healthy.
@@ -157,6 +175,7 @@ class ActiveStream:
         return {
             "stream_id": self.stream_id,
             "video_node": self.video_node,
+            "label": self.label,
             "state": self.state.value,
             "alive": alive,
             "exit_code": self.exit_code,
@@ -366,6 +385,33 @@ class StreamService:
     # ------------------------------------------------------------------
     # Start / stop
     # ------------------------------------------------------------------
+    @staticmethod
+    def _make_label(topo: CameraTopology) -> str:
+        """Short camera name for the UI: sensor entity when known, else the node.
+
+        With several preview popups open at once the window title is the only
+        clue to which camera a view belongs to, so lead with the entity name
+        (``gxcam 10-003b``) and keep the node so two cameras never collapse onto
+        the same string.
+        """
+        entity = (topo.media_entity_name or "").strip()
+        if entity and entity != topo.video_node:
+            return f"{entity} · {topo.video_node}"
+        return topo.video_node
+
+    def _sweep_dead_locked(self) -> None:
+        """Drop pipelines that exited on their own; must hold ``self._lock``.
+
+        Without this a dead stream would linger in ``_streams`` forever (only
+        ``start()`` used to reap), which with a concurrency cap means a crashed
+        preview keeps occupying a slot and keeps its ``video_node`` locked.
+        """
+        for sid in [s for s, a in self._streams.items() if a.process.poll() is not None]:
+            dead = self._streams.pop(sid)
+            self._remember_finished(dead)
+            if self._owners.get(dead.video_node) == sid:
+                self._owners.pop(dead.video_node, None)
+
     def start(
         self,
         platform: str,
@@ -379,8 +425,10 @@ class StreamService:
         """Configure the camera and launch the capture pipeline.
 
         Returns {stream_id, playback_url, media_type, pipeline} on success or
-        {ok: False, error} on failure.  The device node is held exclusively; a
-        second start on the same node returns a 409-style busy error.
+        {ok: False, error} on failure.  Each ``video_node`` is held exclusively,
+        but *different* nodes run concurrently, so several cameras can be
+        previewed at once up to ``_MAX_STREAMS`` (a same-node restart returns a
+        409-style busy error, exceeding the cap a 429-style ``too_many`` error).
 
         ``encoder`` is the codec policy, not an element name: ``jpeg`` lets the
         platform provider pick the fastest encoder it actually has (hardware
@@ -402,24 +450,26 @@ class StreamService:
             }
 
         with self._lock:
+            # Reap first: a pipeline that already exited must neither keep holding
+            # its device-node claim nor count against the concurrency budget.
+            self._sweep_dead_locked()
+
             owner = self._owners.get(video_node)
-            if owner and owner in self._streams and self._streams[owner].process.poll() is None:
+            if owner:
                 return {
                     "ok": False,
                     "busy": True,
                     "error": f"{video_node} is already streaming (stream_id={owner}). "
                              "Stop it before starting a new preview.",
                 }
-            if owner and owner not in self._streams:
-                self._owners.pop(video_node, None)
-
-            # Sweep pipelines that exited on their own: they must keep holding the
-            # device-node claim nor show up as active streams any more.
-            for sid in [s for s, a in self._streams.items() if a.process.poll() is not None]:
-                dead = self._streams.pop(sid)
-                self._remember_finished(dead)
-                if self._owners.get(dead.video_node) == sid:
-                    self._owners.pop(dead.video_node, None)
+            if len(self._streams) >= _MAX_STREAMS:
+                return {
+                    "ok": False,
+                    "too_many": True,
+                    "max_streams": _MAX_STREAMS,
+                    "error": f"Too many concurrent previews (max {_MAX_STREAMS}). "
+                             "Stop one before starting another.",
+                }
 
         # ---- configure ----------------------------------------------------
         configure_result: Optional[Dict[str, Any]] = None
@@ -567,6 +617,7 @@ class StreamService:
             transport_name=trans.name,
             media_type=trans.media_type,
             started_at=time.time(),
+            label=self._make_label(topo),
         )
         # Drain stderr in the background so a full pipe never blocks gst-launch.
         threading.Thread(
@@ -619,6 +670,7 @@ class StreamService:
         return active, {
             "ok": True,
             "stream_id": stream_id,
+            "label": active.label,
             "playback_url": trans.playback_url(stream_id),
             "media_type": trans.media_type,
             "encoder": encoder_element,
@@ -688,12 +740,18 @@ class StreamService:
         logger.info("Stopped stream %s (%s)", stream_id, active.video_node)
         return {"ok": True, "stopped": True, "stream_id": stream_id}
 
-    def shutdown(self) -> None:
-        """Stop every active stream (called on app shutdown)."""
+    def stop_all(self) -> Dict[str, Any]:
+        """Terminate every active stream; used by the UI's "Stop All" action."""
         with self._lock:
             ids = list(self._streams.keys())
         for sid in ids:
             self.stop(sid)
+        return {"ok": True, "stopped": len(ids), "stream_ids": ids}
+
+    def shutdown(self) -> None:
+        """Stop every active stream (called on app shutdown)."""
+        self.stop_all()
+        _READER_POOL.shutdown(wait=False)
 
     # ------------------------------------------------------------------
     # Streaming reader
@@ -714,7 +772,7 @@ class StreamService:
         try:
             while True:
                 try:
-                    chunk = await loop.run_in_executor(None, os.read, fd, _READ_CHUNK)
+                    chunk = await loop.run_in_executor(_READER_POOL, os.read, fd, _READ_CHUNK)
                 except OSError:
                     break
                 if not chunk:
@@ -741,8 +799,17 @@ class StreamService:
                     stale["gone"] = True
                     return {"streams": [stale], "count": 0}
                 return {"streams": [], "count": 0}
+            # The list view drives the UI's concurrency budget, so it must not keep
+            # reporting pipelines that already exited (nobody else polls ``start()``
+            # to trigger the reap once the user just watches the list).
+            self._sweep_dead_locked()
             streams = [s.info() for s in self._streams.values()]
-            return {"streams": streams, "count": len(streams), "owners": dict(self._owners)}
+            return {
+                "streams": streams,
+                "count": len(streams),
+                "max_streams": _MAX_STREAMS,
+                "owners": dict(self._owners),
+            }
 
     def finished_info(self, stream_id: str) -> Optional[Dict[str, Any]]:
         """Last known status of a stream that already ended (None if never seen)."""

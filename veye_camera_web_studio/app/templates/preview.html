@@ -175,6 +175,12 @@
 
         function setMeta(st) {
             if (!st) { el.meta.textContent = ""; return; }
+            // Several preview windows can be open at once, one per camera, so the
+            // window title carries the camera name to make them tellable apart.
+            if (st.label) {
+                el.title.textContent = st.label;
+                document.title = st.label + " - " + t("title");
+            }
             const parts = [];
             if (st.width && st.height) parts.push(st.width + "×" + st.height);
             if (st.fps) parts.push(st.fps + " fps");

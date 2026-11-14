@@ -18,6 +18,7 @@
     "camera_select": { "en": "Select Camera", "zh": "选择相机" },
     "no_camera": { "en": "No camera detected", "zh": "未检测到相机" },
     "no_camera_hint": { "en": "Using default I2C settings", "zh": "使用默认 I2C 设置" },
+    "apply_settings": { "en": "Apply Settings", "zh": "应用设置" },
     "rescan": { "en": "Rescan", "zh": "重新扫描" },
     "model": { "en": "Model", "zh": "型号" },
     "version_c": { "en": "C Version", "zh": "C 版本" },
@@ -121,6 +122,7 @@
     "roi_x": { "en": "ROI X", "zh": "ROI X" },
     "roi_y": { "en": "ROI Y", "zh": "ROI Y" },
     "preset_mode": { "en": "Preset Index", "zh": "预设索引" },
+    "mode_word": { "en": "Mode", "zh": "模式" },
     "quality": { "en": "JPEG Quality", "zh": "JPEG 质量" },
     "start": { "en": "Start Preview", "zh": "开始预览" },
     "stop": { "en": "Stop", "zh": "停止" },
@@ -142,6 +144,12 @@
     "status_busy": { "en": "Device busy", "zh": "设备被占用" },
     "status_died": { "en": "Preview process exited", "zh": "预览进程已退出" },
     "status_noframes": { "en": "Running, but no frames received yet", "zh": "进程在运行，但暂未收到画面帧" },
-    "configure_failed": { "en": "Camera configuration failed", "zh": "相机配置失败" }
+    "configure_failed": { "en": "Camera configuration failed", "zh": "相机配置失败" },
+    "list_title": { "en": "Running Previews", "zh": "运行中的预览" },
+    "stop_all": { "en": "Stop All", "zh": "全部停止" },
+    "reopen": { "en": "Open Preview Window", "zh": "打开预览窗口" },
+    "no_viewer": { "en": "no viewer", "zh": "无观看端" },
+    "inline_busy": { "en": "Inline preview shows only one stream; allow pop-ups to view several", "zh": "内联预览一次只能显示一路；请允许弹出窗口以同时查看多路" },
+    "limit_reached": { "en": "Too many concurrent previews", "zh": "并发预览数量已达上限" }
   }
 }

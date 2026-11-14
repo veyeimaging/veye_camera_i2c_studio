@@ -1,5 +1,53 @@
 # Release Log
 
+## v0.5.0 (2026-11-13)
+
+### New Features
+- **Concurrent multi-camera live preview**: preview several cameras at the same time, one independent `/preview` window each. Selecting a different camera no longer stops an already running preview
+  - Windows are named deterministically per `video_node`, so reopening a camera focuses its existing window and two cameras cannot collide on one
+  - Sidebar **Running Previews** list: camera label, resolution/framerate, the encoder actually in use, measured fps (`no viewer` while nothing is reading the stream, because `measured_fps` counts bytes actually delivered to a consumer), per-row reopen/stop, and **Stop All**
+  - Every window title shows its camera (`gxcam 10-003b · /dev/video0`) so simultaneous popups are distinguishable
+- **Concurrency cap `_MAX_STREAMS = 4`** returning HTTP 429 with a dedicated `too_many` reason. The ceiling comes from the browser, not the board: each live `<img>` occupies one of the six HTTP/1.1 per-origin connections. Raise it only along with a separate stream port
+- **`POST /api/stream/stop-all`**, and `max_streams` now reported by `GET /api/stream/status`
+- **Stream state is authoritative from the server**: the running-list poll adopts streams the tab has never seen (popups and pipelines survive a reload) and drops records whose pipeline has ended
+
+### Improvements
+- MJPEG reads run on their own thread pool (`_READER_POOL`) rather than Starlette's default one, because a blocked `os.read` parks a worker for the stream's whole life - sharing the pool used to let several previews starve the synchronous endpoints, `/start` included
+- Crashed pipelines are reaped by `_sweep_dead_locked()` from both `start()` and `status()`. They used to be reaped only on the next `start()`, which under a concurrency cap would have left a dead stream holding both a slot and its exclusive `video_node`
+
+### Bug Fixes
+- Selecting a camera that is already streaming restores that stream's own parameters instead of letting the live register read (`applyStreamCurrent`) or the preset selector (`applyStreamPreset`) overwrite them with values the pipeline is not using
+- Starting a second preview while pop-ups were blocked tore the first one down: the inline thumbnail is one `<img>`, so pointing it at the new camera disconnected the previous stream and the server stopped that pipeline. The second start is now refused with a `stream.inline_busy` hint and the running preview is kept
+- The inline fallback thumbnail stays rendered when another camera is selected - hiding it drops the connection and the server stops a stream whose only consumer left; it is now captioned with the stream it actually shows
+- `window.__veyePreviewEnded()` routes by stream id instead of ignoring reports for a stream other than the one currently displayed
+- Pre-existing i18n defects fixed in passing: the manual-settings button pointed at a missing key and rendered the literal `device.apply_settings`; the Live Preview capability badge/hint and the `Preset Index` option labels kept the language active at probe time instead of re-translating on the EN/中文 switch (they are now rebuilt from cached state - no extra I2C read, and the chosen preset is preserved); `<html lang>` no longer stays `en`
+
+### Files Modified
+- `app/services/stream_service.py` — `_MAX_STREAMS`, `_READER_POOL`, `_sweep_dead_locked()`, `stop_all()`, `ActiveStream.label`, sweep in `status()`
+- `app/api/stream.py` — `too_many` -> 429, `POST /stop-all`
+- `app/static/app.js` — `state.streams` registry (was single-stream fields), `syncStreamPanel()`, running-previews list, per-camera popup naming, adoption/pruning
+- `app/templates/index.html` — running-previews list, inline caption
+- `app/templates/preview.html` — camera label in title and header
+- `app/static/style.css` — `.stream-list*`, `.stream-inline-caption`
+- `config/i18n.json` — seven new `stream.*` keys plus `device.apply_settings` (en + zh)
+- `main.py`, `app/templates/index.html` — version bump to 0.5.0 and cache busting
+
+### Known Limitations
+- Concurrent hardware JPEG encoding is board-dependent: verified on Jetson Orin with two `nvjpegenc` instances (see Tested On), but `mppjpegenc` on Rockchip may reject a second instance, and the hardware->software fallback only watches the startup probe, so a mid-run encoder stall appears as 0 measured fps rather than switching encoders by itself
+- Starting several cameras at once is serialised by the global I2C lock plus each stream's 1.5s startup probe (roughly 1.5-2s per camera)
+- With pop-ups blocked the browser keeps the single inline thumbnail, so only one preview can be viewed at a time in that mode
+
+### Tested On
+- Nvidia Jetson (L4T, `6.8.12-1021-tegra` aarch64), two VEYE MIPI cameras: `/dev/video0` (I2C bus 10) and `/dev/video1` (bus 9)
+  - Two concurrent `nvjpegenc` pipelines: 1080p@30 measured 30.0 fps and 1080p@60 measured 40.0 fps, both alive at the same time; stopping one left the other running and counting frames, with only the stopped node's claim released
+  - Duplicate start on a capturing node returned HTTP 409; after consumer disconnect and after `stop-all` no `gst-launch` process remained
+  - Cap reached from a two-camera board (`too_many`/429 on the 5th node, crash reaping in `status()`) was covered at service level with stub pipelines
+  - UI in the browser: no console errors; switching cameras kept the other camera's row in the Running Previews list; new labels localise on the EN/中文 switch
+  - EN -> 中文 -> EN round-trip plus a camera switch: no untranslated `section.key` text left in the DOM, `<html lang>` tracks the selection, and the badge/hint/preset-option texts re-translate without resetting the operator's preset choice or the resolution fields
+  - Multi-window mode (one `/preview` per camera) verified on the board in a desktop browser with pop-ups allowed
+
+---
+
 ## v0.4.2 (2026-11-13)
 
 ### New Features

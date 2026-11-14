@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VEYE Camera Web Studio</title>
-    <link rel="stylesheet" href="/static/style.css?v=20261113j">
+    <link rel="stylesheet" href="/static/style.css?v=20261113k">
 </head>
 <body>
     <!-- Header -->
@@ -12,7 +12,7 @@
         <div class="header-left">
             <img src="/static/logo.png" alt="VEYE" class="header-logo">
             <h1 class="logo">VEYE Camera Web Studio</h1>
-            <span class="version">v0.4.2</span>
+            <span class="version">v0.5.0</span>
         </div>
         <div class="header-right">
             <button class="theme-btn" id="btnThemeToggle" title="Toggle theme">🌙</button>
@@ -188,9 +188,21 @@
                     <div class="stream-popup-hint" id="streamPopupHint" style="display:none;">
                         <span>🖵</span> <span data-i18n="stream.popup_hint">Preview is shown in a separate window.</span>
                     </div>
+                    <span class="stream-inline-caption" id="mjpegCaption" style="display:none;"></span>
                     <img id="mjpegView" alt="Live preview">
                     <span class="stream-live-fps" id="streamLiveFps" style="display:none;">0 fps</span>
                     <div class="stream-status" id="streamStatus"></div>
+                </div>
+                <!-- Every running pipeline, whichever camera it belongs to. The server
+                     is the source of truth, so this also reconciles the panel after a
+                     reload or a pipeline that died on its own. -->
+                <div class="stream-list" id="streamListWrap" style="display:none;">
+                    <div class="stream-list-head">
+                        <span class="stream-list-title" data-i18n="stream.list_title">Running Previews</span>
+                        <span class="stream-list-count" id="streamListCount"></span>
+                        <button class="btn btn-sm btn-outline" id="btnStopAllStreams" data-i18n="stream.stop_all">Stop All</button>
+                    </div>
+                    <div id="streamList"></div>
                 </div>
             </section>
         </aside>
@@ -318,6 +330,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=20261113j"></script>
+    <script src="/static/app.js?v=20261113l"></script>
 </body>
 </html>

@@ -15,12 +15,18 @@
         view: "welcome",
         cameras: [],
         selectedCamera: null,
-        streamId: null,  // active live-preview stream id (GX only)
-        previewWindow: null,       // dedicated /preview popup (the sole MJPEG consumer)
-        streamWatchTimer: null,    // polls the popup to detect when the user closes it
+        // One entry per running pipeline: streamId -> {streamId, videoNode, label,
+        // series, playbackUrl, encoder, params, popup, watchTimer, inlineFpsTimer,
+        // inlineZeroTicks}.  Keyed by id so switching the selected camera never
+        // disturbs a stream another camera is still running.
+        streams: new Map(),
+        // The inline <img> can only ever read one stream (a second consumer on the
+        // same gst stdout would split the multipart frames).
+        inlineStreamId: null,
         streamCap: null,           // detected VideoModeCap: 1=ROI, 2=Preset, null=unknown
         streamPresetModes: [],     // preset modes read from the camera (cap_mode==2)
-        inlineFpsTimer: null,      // polls server-measured fps for the inline fallback
+        streamListTimer: null,     // polls /api/stream/status for the running list
+        maxStreams: 4,             // server-reported concurrency cap (for the hint)
         platform: "jetson",
         cameraSeries: "gx",  // "gx" or "mv"
         supportedSeries: [],
@@ -49,6 +55,8 @@
             "streamPresetWrap", "streamPresetMode", "streamQuality",
             "streamCapBadge", "streamCapText", "btnStreamRedetect",
             "btnStartStream", "btnOpenPreview", "btnStopStream", "streamPopupHint", "streamLiveFps",
+            "mjpegCaption",
+            "streamListWrap", "streamListCount", "streamList", "btnStopAllStreams",
             "defaultI2cInfo", "manualSeries", "manualI2cBus", "manualI2cAddr", "btnApplyManual",
             "btnRescan",
             "cameraSeriesDisplay", "camSeries",
@@ -98,18 +106,28 @@
         return obj || key;
     }
 
-    function applyI18n() {
-        $$("[data-i18n]").forEach((el) => {
-            const key = el.getAttribute("data-i18n");
-            el.textContent = t(key);
+    // Translate one subtree. Dynamically rendered rows use this instead of a full
+    // applyI18n(), which would walk the whole document on every status poll.
+    function applyI18nAttributes(root) {
+        const scope = root || document;
+        scope.querySelectorAll("[data-i18n]").forEach((el) => {
+            el.textContent = t(el.getAttribute("data-i18n"));
         });
-        $$("[data-i18n-placeholder]").forEach((el) => {
+        scope.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
             el.placeholder = t(el.getAttribute("data-i18n-placeholder"));
         });
-        $$("[data-i18n-title]").forEach((el) => {
+        scope.querySelectorAll("[data-i18n-title]").forEach((el) => {
             el.title = t(el.getAttribute("data-i18n-title"));
         });
+    }
+
+    function applyI18n() {
+        applyI18nAttributes(document);
+        // Both attributes matter: ``data-lang`` drives the CSS that picks which
+        // embedded label to show, while ``lang`` is what screen readers and any
+        // ``[lang]`` selector in the browser use.
         document.documentElement.setAttribute("data-lang", state.lang);
+        document.documentElement.lang = state.lang;
     }
 
     async function loadI18n() {
@@ -287,9 +305,13 @@
     function selectCamera(index) {
         const cam = state.cameras[index];
         if (!cam) return;
-        // Stop any running preview before switching devices (releases the old lock).
-        if (state.streamId) { stopStream(); }
+        // Deliberately does NOT stop the previous camera's preview: each running
+        // pipeline is tracked in state.streams and keeps its own popup and lock.
         state.selectedCamera = cam;
+        // Show what this camera's pipeline is actually capturing, if it has one;
+        // refreshStreamCaps() would otherwise overwrite it with live register values.
+        const running = streamFor(cam.video_node);
+        if (running) applyStreamParams(running); else syncStreamPanel();
 
         // Auto-switch camera series if detected from sysfs
         if (cam.series && cam.series !== state.cameraSeries) {
@@ -1303,6 +1325,13 @@
                 if (state.currentGroup && state.view === "list") selectGroup(state.currentGroup);
                 if (state.currentCommand) renderOpPanel(state.currentCommand);
                 renderGroups();
+                // The Live Preview panel builds its strings from t() at render time
+                // instead of through data-i18n attributes, so applyI18n() alone cannot
+                // reach it: without this the capability badge/hint and the preset
+                // option labels kept whichever language was active when the camera was
+                // probed. Both calls reuse cached state, so no I2C read is repeated.
+                updateStreamGate();
+                populateStreamPresetSelect();
             });
         });
 
@@ -1318,15 +1347,92 @@
             else showView("welcome");
         });
 
-        // Live Preview (GX / UYVY)
+        // Live Preview (multi-camera)
         if (dom.btnStartStream) dom.btnStartStream.addEventListener("click", startStream);
-        if (dom.btnStopStream) dom.btnStopStream.addEventListener("click", stopStream);
+        // Stop/Open act on the *selected* camera's stream, never on some global one.
+        if (dom.btnStopStream) dom.btnStopStream.addEventListener("click", () => {
+            const rec = streamForSelectedCamera();
+            if (rec) stopStream(rec.streamId);
+        });
         if (dom.streamPresetMode) dom.streamPresetMode.addEventListener("change", applyStreamPreset);
         if (dom.btnStreamRedetect) dom.btnStreamRedetect.addEventListener("click", refreshStreamCaps);
-        if (dom.btnOpenPreview) dom.btnOpenPreview.addEventListener("click", () => { if (state.streamId) openPreviewWindow(state.streamId); });
+        if (dom.btnOpenPreview) dom.btnOpenPreview.addEventListener("click", () => {
+            const rec = streamForSelectedCamera();
+            if (rec) openPreviewWindow(rec.streamId);
+        });
+        if (dom.btnStopAllStreams) dom.btnStopAllStreams.addEventListener("click", stopAllStreams);
+        // One delegated listener serves every row, so re-rendering the list does not
+        // leak a listener per row.
+        if (dom.streamList) dom.streamList.addEventListener("click", (ev) => {
+            const btn = ev.target.closest("button[data-act]");
+            if (!btn) return;
+            const row = btn.closest("[data-stream-id]");
+            if (!row) return;
+            const sid = row.getAttribute("data-stream-id");
+            if (btn.getAttribute("data-act") === "reopen") openPreviewWindow(sid);
+            else stopStream(sid);
+        });
     }
 
-    // ========== Live Preview (GX / UYVY) ==========
+    // ========== Live Preview (multi-camera) ==========
+
+    // ---- Stream registry -------------------------------------------------
+    // Every running pipeline lives in state.streams, keyed by stream_id. The
+    // panel edits the *selected* camera's entry, so looking a stream up by
+    // video_node is what lets several cameras preview at the same time.
+    function streamFor(videoNode) {
+        if (!videoNode) return null;
+        for (const rec of state.streams.values()) {
+            if (rec.videoNode === videoNode) return rec;
+        }
+        return null;
+    }
+
+    function streamForSelectedCamera() {
+        return streamFor((state.selectedCamera || {}).video_node);
+    }
+
+    // Deterministic popup name per camera: re-opening the same camera focuses its
+    // existing window instead of stealing a different camera's popup. It must not
+    // use the stream_id, because the window is pre-opened (inside the click
+    // gesture, to beat the popup blocker) before the id is known.
+    function popupNameFor(videoNode) {
+        return "veyePreview_" + String(videoNode || "x").replace(/\W+/g, "");
+    }
+
+    function popupUrl(streamId) {
+        return "/preview?stream_id=" + encodeURIComponent(streamId)
+            + "&lang=" + encodeURIComponent(state.lang);
+    }
+
+    function popupSpecs() {
+        return "width=1040,height=760,menubar=no,toolbar=no,location=no,status=no,resizable=yes";
+    }
+
+    function clearStreamTimers(rec) {
+        if (!rec) return;
+        if (rec.watchTimer) { clearInterval(rec.watchTimer); rec.watchTimer = null; }
+        if (rec.inlineFpsTimer) { clearInterval(rec.inlineFpsTimer); rec.inlineFpsTimer = null; }
+    }
+
+    function closeStreamPopup(rec) {
+        if (!rec || !rec.popup) return;
+        try { rec.popup.close(); } catch (e) { /* ignore */ }
+        rec.popup = null;
+    }
+
+    function forgetStream(streamId) {
+        const rec = state.streams.get(streamId);
+        if (!rec) return false;
+        clearStreamTimers(rec);
+        if (state.inlineStreamId === streamId) {
+            state.inlineStreamId = null;
+            try { dom.mjpegView.removeAttribute("src"); } catch (e) { /* ignore */ }
+        }
+        state.streams.delete(streamId);
+        return true;
+    }
+
     async function streamPost(url, body) {
         const res = await fetch(url, {
             method: "POST",
@@ -1357,55 +1463,66 @@
 
     // Inline fallback FPS: read the server-measured rate via the status endpoint
     // (only used when the popup is blocked and the thumbnail <img> is the consumer).
-    let inlineZeroTicks = 0;
-    function resetInlineFps() {
-        if (dom.streamLiveFps) { dom.streamLiveFps.textContent = "0 fps"; dom.streamLiveFps.style.display = ""; }
-        inlineZeroTicks = 0;
+    function resetInlineFps(rec) {
+        if (!rec) return;
+        rec.inlineZeroTicks = 0;
+        if (dom.streamLiveFps && state.inlineStreamId === rec.streamId) {
+            dom.streamLiveFps.textContent = "0 fps";
+            dom.streamLiveFps.style.display = "";
+        }
     }
 
     // The pipeline is gone - either the server no longer knows the id (404) or it
     // reports the process dead.  Stop polling and surface the recorded reason; a
     // dead id must not be polled forever while the status line keeps saying 0 fps.
-    function reportStreamGone(st) {
+    function reportStreamGone(streamId, st) {
         let reason = "";
         if (st) {
             reason = st.error || "";
             if (!reason && st.stderr_tail && st.stderr_tail.length) reason = st.stderr_tail.slice(-2).join(" | ");
             if (!reason && typeof st.exit_code === "number") reason = "gst-launch exit code " + st.exit_code;
         }
-        handleStreamStopped();
-        setStreamStatus(t("stream.status_died") + (reason ? ": " + reason : ""), "error");
+        // Captured before the teardown, which drops the record.
+        const rec = state.streams.get(streamId);
+        handleStreamStopped(streamId);
+        // Only narrate the selected camera's fate in the shared status line, so a
+        // background camera dying does not silently rewrite what the user is doing.
+        if (!rec || rec.videoNode === (state.selectedCamera || {}).video_node) {
+            setStreamStatus(t("stream.status_died") + (reason ? ": " + reason : ""), "error");
+        }
     }
 
-    // Hook called by the preview popup (same origin) when its pipeline dies, so the
+    // Hook called by a preview popup (same origin) when its pipeline dies, so the
     // main panel stops reporting "Previewing" for a stream that is already gone.
+    // The stream id routes it to the right record out of however many are running.
     window.__veyePreviewEnded = function (sid, reasonText) {
-        if (!state.streamId || (sid && sid !== state.streamId)) return;
-        reportStreamGone({ error: reasonText || "" });
+        if (!sid || !state.streams.has(sid)) return;
+        reportStreamGone(sid, { error: reasonText || "" });
     };
 
-    async function updateInlineFps() {
-        if (!dom.streamLiveFps) return;
-        const inlineActive = state.streamId && !state.previewWindow;
-        if (!inlineActive) {
-            if (state.inlineFpsTimer) { clearInterval(state.inlineFpsTimer); state.inlineFpsTimer = null; }
+    async function updateInlineFps(streamId) {
+        const rec = state.streams.get(streamId);
+        if (!rec) return;
+        if (state.inlineStreamId !== streamId) {
+            if (rec.inlineFpsTimer) { clearInterval(rec.inlineFpsTimer); rec.inlineFpsTimer = null; }
             return;
         }
         try {
-            const res = await fetch("/api/stream/" + state.streamId + "/status");
-            if (res.status === 404) { reportStreamGone(null); return; }
+            const res = await fetch("/api/stream/" + encodeURIComponent(streamId) + "/status");
+            if (res.status === 404) { reportStreamGone(streamId, null); return; }
             if (!res.ok) return;
             const st = await res.json();
-            if (!st.alive) { reportStreamGone(st); return; }
+            if (!st.alive) { reportStreamGone(streamId, st); return; }
             const v = (typeof st.measured_fps === "number" && st.measured_fps > 0) ? st.measured_fps : 0;
-            dom.streamLiveFps.textContent = (v ? v.toFixed(1) : "0") + " fps";
+            if (dom.streamLiveFps) dom.streamLiveFps.textContent = (v ? v.toFixed(1) : "0") + " fps";
             // Alive but delivering nothing for ~5s: say so instead of a silent 0 fps.
             if (v <= 0) {
-                if (++inlineZeroTicks === 5) {
+                rec.inlineZeroTicks = (rec.inlineZeroTicks || 0) + 1;
+                if (rec.inlineZeroTicks === 5 && rec.videoNode === (state.selectedCamera || {}).video_node) {
                     setStreamStatus(t("stream.status_noframes") + " \u00b7 " + st.width + "\u00d7" + st.height + " @ " + st.fps + " fps", "error");
                 }
-            } else if (inlineZeroTicks > 0) {
-                inlineZeroTicks = 0;
+            } else if (rec.inlineZeroTicks) {
+                rec.inlineZeroTicks = 0;
             }
         } catch (e) { /* ignore transient fetch errors */ }
     }
@@ -1434,23 +1551,77 @@
         };
     }
 
+    // Put a running stream's own parameters back into the inputs. Without this,
+    // switching cameras would show values that differ from what that pipeline is
+    // actually capturing (register prefill reads the live sensor, not the stream).
+    function applyStreamParams(rec) {
+        if (!rec || !rec.params) return;
+        const p = rec.params;
+        if (dom.streamWidth) dom.streamWidth.value = p.width;
+        if (dom.streamHeight) dom.streamHeight.value = p.height;
+        if (dom.streamFps) dom.streamFps.value = p.fps;
+        if (dom.streamRoiX) dom.streamRoiX.value = p.roiX;
+        if (dom.streamRoiY) dom.streamRoiY.value = p.roiY;
+        if (dom.streamQuality) dom.streamQuality.value = p.quality;
+        if (dom.streamPresetMode && p.presetMode != null) dom.streamPresetMode.value = String(p.presetMode);
+    }
+
     function setStreamStatus(msg, kind) {
         if (!dom.streamStatus) return;
         dom.streamStatus.textContent = msg || "";
         dom.streamStatus.className = "stream-status" + (kind ? " " + kind : "");
     }
 
+    // Give the inline <img> one stream to read, and keep it attached even when
+    // another camera is selected: hiding it would drop the connection, and the
+    // server tears a pipeline down as soon as its only consumer disconnects.
+    function attachInline(rec) {
+        state.inlineStreamId = rec.streamId;
+        dom.mjpegView.src = rec.playbackUrl + "?t=" + Date.now();
+        resetInlineFps(rec);
+        if (!rec.inlineFpsTimer) {
+            rec.inlineFpsTimer = setInterval(() => updateInlineFps(rec.streamId), 1000);
+        }
+    }
+
+    function detachInline() {
+        state.inlineStreamId = null;
+        try { dom.mjpegView.removeAttribute("src"); } catch (e) { /* ignore */ }
+    }
+
     async function startStream() {
         const cam = state.selectedCamera;
         if (!cam || !cam.video_node) { setStreamStatus(t("stream.hint_no_camera"), "error"); return; }
-        const _s = state.cameraSeries || "gx";
-        if (_s !== "gx" && _s !== "mv") return;
-        if (state.streamId) return;
+        const series = state.cameraSeries || "gx";
+        if (series !== "gx" && series !== "mv") return;
+        // Already streaming this camera: bring its window back rather than asking
+        // for a second pipeline on the same node (the server would reply 409).
+        const existing = streamFor(cam.video_node);
+        if (existing) { openPreviewWindow(existing.streamId); return; }
+        // Client-side pre-check only; the server owns the real limit. The list poll
+        // adopts any stream this tab does not know about yet (e.g. after a reload),
+        // which is what keeps the pre-opened window below from ever blanking a
+        // live preview that shares the same deterministic popup name.
+        if (state.streams.size >= state.maxStreams) {
+            setStreamStatus(t("stream.limit_reached") + " (" + state.streams.size + "/" + state.maxStreams + ")", "error");
+            refreshStreamList(true);
+            return;
+        }
         // Pre-open the popup synchronously (still inside the click gesture) so it
         // is not blocked; we navigate it to /preview once we know the stream_id.
-        const specs = "width=1040,height=760,menubar=no,toolbar=no,location=no,status=no,resizable=yes";
-        const popup = window.open("about:blank", "veyeLivePreview", specs);
+        const popup = window.open("about:blank", popupNameFor(cam.video_node), popupSpecs());
         const popupBlocked = !popup;
+        // The inline thumbnail has exactly one <img>, so it can only ever feed one
+        // stream. Re-pointing it at the new camera would disconnect the stream it
+        // currently serves, and the server tears a pipeline down as soon as its
+        // only viewer leaves - so refuse instead of silently killing a running
+        // preview. Multi-camera viewing needs the popup windows.
+        if (popupBlocked && state.inlineStreamId && state.streams.has(state.inlineStreamId)) {
+            const cur = state.streams.get(state.inlineStreamId);
+            setStreamStatus(t("stream.inline_busy") + " (" + cur.label + ")", "error");
+            syncStreamPanel();
+            return;
+        }
         dom.btnStartStream.disabled = true;
         setStreamStatus(t("stream.status_starting"), "loading");
         let body;
@@ -1460,52 +1631,85 @@
         }
         try {
             const data = await streamPost("/api/stream/start", body);
-            state.streamId = data.stream_id;
-            dom.streamPreviewWrap.style.display = "";
-            dom.btnStartStream.style.display = "none";
-            dom.btnStopStream.style.display = "";
-            if (dom.btnOpenPreview) dom.btnOpenPreview.style.display = "";
+            state.streams.set(data.stream_id, {
+                streamId: data.stream_id,
+                videoNode: cam.video_node,
+                label: data.label || cam.media_entity_name || cam.video_node,
+                series,
+                playbackUrl: data.playback_url,
+                encoder: data.encoder || "",
+                params: {
+                    width: body.width, height: body.height, fps: body.fps,
+                    roiX: body.roi_x, roiY: body.roi_y, quality: body.jpeg_quality,
+                    presetMode: body.preset_mode,
+                },
+                popup: popupBlocked ? null : popup,
+                watchTimer: null,
+                inlineFpsTimer: null,
+                inlineZeroTicks: 0,
+                startedAt: Date.now(),
+            });
+            const rec = state.streams.get(data.stream_id);
             if (!popupBlocked) {
-                // Popup is the sole consumer; keep the inline <img> detached so
-                // the stream never has two readers on the same stdout.
-                popup.location.href = "/preview?stream_id=" + encodeURIComponent(data.stream_id) + "&lang=" + encodeURIComponent(state.lang);
-                state.previewWindow = popup;
-                setPreviewLauncher(true);
-                startStreamWatch();
+                // Popup is the sole consumer; the inline <img> stays detached so the
+                // stream never has two readers on the same stdout.
+                popup.location.href = popupUrl(data.stream_id);
+                startStreamWatch(rec);
             } else {
                 // Popup blocked -> fall back to the inline thumbnail.
-                dom.mjpegView.src = data.playback_url + "?t=" + Date.now();
-                setPreviewLauncher(false);
-                resetInlineFps();
-                if (state.inlineFpsTimer) clearInterval(state.inlineFpsTimer);
-                state.inlineFpsTimer = setInterval(updateInlineFps, 1000);
+                attachInline(rec);
             }
+            syncStreamPanel();
             setStreamStatus(
-                t("stream.status_previewing") + " \u00b7 " + body.width + "\u00d7" + body.height +
+                t("stream.status_previewing") + " \u00b7 " + rec.label +
+                " \u00b7 " + body.width + "\u00d7" + body.height +
                 " @ " + body.fps + " fps" + (data.encoder ? " \u00b7 " + data.encoder : ""),
                 "ok"
             );
+            refreshStreamList(true);
         } catch (e) {
             if (popup) { try { popup.close(); } catch (_) { /* ignore */ } }
             dom.btnStartStream.style.display = "";
             dom.btnStartStream.disabled = false;
             dom.streamPreviewWrap.style.display = "none";
-            if (e.status === 409) setStreamStatus(t("stream.status_busy") + ": " + e.message, "error");
+            if (e.status === 429) setStreamStatus(t("stream.limit_reached") + ": " + e.message, "error");
+            else if (e.status === 409) setStreamStatus(t("stream.status_busy") + ": " + e.message, "error");
             else setStreamStatus(e.message || t("stream.status_error"), "error");
+            refreshStreamList(true);
         }
     }
 
-    async function stopStream() {
-        const sid = state.streamId;
+    async function stopStream(streamId) {
+        const rec = state.streams.get(streamId);
+        if (!rec) return;
+        const wasSelected = rec.videoNode === (state.selectedCamera || {}).video_node;
         // Disconnect every viewer first so the server tears the pipeline down.
-        if (state.previewWindow) { try { state.previewWindow.close(); } catch (e) { /* ignore */ } }
-        state.previewWindow = null;
-        stopStreamWatch();
-        try { dom.mjpegView.removeAttribute("src"); } catch (e) { /* ignore */ }
-        if (sid) {
-            try { await streamPost("/api/stream/" + sid + "/stop", {}); } catch (e) { console.warn("stop failed:", e); }
-        }
-        handleStreamStopped();
+        closeStreamPopup(rec);
+        clearStreamTimers(rec);
+        if (state.inlineStreamId === streamId) detachInline();
+        try {
+            await streamPost("/api/stream/" + encodeURIComponent(streamId) + "/stop", {});
+        } catch (e) { console.warn("stop failed:", e); }
+        forgetStream(streamId);
+        syncStreamPanel();
+        refreshStreamList(true);
+        if (wasSelected) setStreamStatus(t("stream.status_stopped"), "");
+    }
+
+    async function stopAllStreams() {
+        const ids = Array.from(state.streams.keys());
+        ids.forEach((id) => {
+            const rec = state.streams.get(id);
+            closeStreamPopup(rec);
+            clearStreamTimers(rec);
+        });
+        detachInline();
+        try {
+            await streamPost("/api/stream/stop-all", {});
+        } catch (e) { console.warn("stop-all failed:", e); }
+        ids.forEach((id) => forgetStream(id));
+        syncStreamPanel();
+        refreshStreamList(true);
         setStreamStatus(t("stream.status_stopped"), "");
     }
 
@@ -1541,9 +1745,11 @@
             else { dom.streamHint.textContent = t("stream.hint"); dom.streamHint.className = "stream-hint"; }
         }
         if (dom.streamControls) dom.streamControls.classList.toggle("stream-disabled", !hasCam);
-        if (dom.btnStartStream && !state.streamId) {
+        // A camera that is already streaming shows Stop, not Start.
+        if (dom.btnStartStream && !streamForSelectedCamera()) {
             dom.btnStartStream.disabled = !hasCam;
         }
+        syncStreamPanel();
     }
 
     function setStreamCapUI(isGx, hasCam, cap) {
@@ -1606,6 +1812,11 @@
     function applyStreamCurrent(cur) {
         if (!cur || typeof cur !== "object") return;
         if (state.streamCap === 2) return;
+        // While this camera is streaming, its own pipeline parameters win: overwriting
+        // them with live register values would show numbers that differ from what the
+        // preview is actually producing.
+        const rec = streamForSelectedCamera();
+        if (rec) { applyStreamParams(rec); return; }
         if (cur.width  && dom.streamWidth)  dom.streamWidth.value  = cur.width;
         if (cur.height && dom.streamHeight) dom.streamHeight.value = cur.height;
         if (typeof cur.fps === "number" && cur.fps > 0 && dom.streamFps) dom.streamFps.value = cur.fps;
@@ -1616,10 +1827,13 @@
     function populateStreamPresetSelect() {
         const sel = dom.streamPresetMode;
         if (!sel) return;
+        const prev = sel.value;
         sel.innerHTML = "";
         const modes = state.streamPresetModes || [];
         if (state.streamCap !== 2 || !modes.length) return;
-        const modeWord = state.lang === "zh" ? "模式" : "Mode";
+        // Labels come from t() so a language switch can rebuild them from cache;
+        // this function is called again on switch, and must then keep the choice.
+        const modeWord = t("stream.mode_word");
         modes.forEach((m) => {
             const opt = document.createElement("option");
             opt.value = String(m.mode);
@@ -1627,6 +1841,11 @@
                 + " @ " + m.fps + "fps" + (m.read_mode_name ? " · " + m.read_mode_name : "");
             sel.appendChild(opt);
         });
+        if (prev && Array.prototype.some.call(sel.options, (o) => o.value === prev)) {
+            sel.value = prev;
+            applyStreamPreset();
+            return;
+        }
         // Preselect the mode that matches the camera's current resolution.
         const cam = state.selectedCamera || {};
         let idx = 0;
@@ -1641,6 +1860,10 @@
         if (state.streamCap !== 2) return;
         const sel = dom.streamPresetMode;
         if (!sel || !sel.options.length) return;
+        // Same rule as applyStreamCurrent: a running stream keeps showing the
+        // resolution it actually captures, not whatever the selector landed on.
+        const rec = streamForSelectedCamera();
+        if (rec) { applyStreamParams(rec); return; }
         const mode = parseInt(sel.value, 10);
         const m = (state.streamPresetModes || []).find((x) => x.mode === mode);
         if (!m) return;
@@ -1649,55 +1872,191 @@
         if (dom.streamFps && m.fps) dom.streamFps.value = m.fps;
     }
 
-    function setPreviewLauncher(inPopup) {
-        if (dom.streamPopupHint) dom.streamPopupHint.style.display = inPopup ? "" : "none";
-        if (dom.mjpegView) dom.mjpegView.style.display = inPopup ? "none" : "";
+    // Render the panel for the currently selected camera. Two independent things
+    // can occupy the preview area at once, because they belong to different
+    // streams: the selected camera's popup (hint only) and whichever stream the
+    // inline <img> is consuming - the latter may well be another camera, and must
+    // stay rendered or its preview would be torn down by the disconnect.
+    function syncStreamPanel() {
+        const rec = streamForSelectedCamera();
+        const inlineRec = state.inlineStreamId ? state.streams.get(state.inlineStreamId) : null;
+        const popupOpen = !!(rec && rec.popup && !rec.popup.closed);
+
+        if (dom.btnStartStream) {
+            dom.btnStartStream.style.display = rec ? "none" : "";
+            if (!rec) dom.btnStartStream.disabled = !((state.selectedCamera || {}).video_node);
+        }
+        if (dom.btnStopStream) dom.btnStopStream.style.display = rec ? "" : "none";
+        if (dom.btnOpenPreview) dom.btnOpenPreview.style.display = (rec && !popupOpen) ? "" : "none";
+
+        if (dom.mjpegView) dom.mjpegView.style.display = inlineRec ? "" : "none";
+        if (dom.mjpegCaption) {
+            dom.mjpegCaption.textContent = inlineRec ? inlineRec.label : "";
+            dom.mjpegCaption.style.display = inlineRec ? "" : "none";
+        }
+        if (dom.streamLiveFps) dom.streamLiveFps.style.display = inlineRec ? "" : "none";
+        if (dom.streamPopupHint) dom.streamPopupHint.style.display = popupOpen ? "" : "none";
+        if (dom.streamPreviewWrap) {
+            dom.streamPreviewWrap.style.display = (inlineRec || popupOpen) ? "" : "none";
+        }
     }
 
     function openPreviewWindow(streamId) {
-        if (!streamId) return null;
-        const specs = "width=1040,height=760,menubar=no,toolbar=no,location=no,status=no,resizable=yes";
-        const url = "/preview?stream_id=" + encodeURIComponent(streamId) + "&lang=" + encodeURIComponent(state.lang);
-        let w = state.previewWindow;
+        const rec = state.streams.get(streamId);
+        if (!rec) return null;
+        let w = rec.popup;
         if (w && !w.closed) { try { w.focus(); return w; } catch (e) { /* fallthrough */ } }
-        w = window.open(url, "veyeLivePreview", specs);
+        // Deterministic name: after a page reload this re-adopts the window the
+        // browser still holds for this camera instead of spawning a duplicate.
+        w = window.open(popupUrl(streamId), popupNameFor(rec.videoNode), popupSpecs());
         if (w) {
-            state.previewWindow = w;
-            setPreviewLauncher(true);
-            // Promoting to the popup: detach the inline consumer first.
-            try { dom.mjpegView.removeAttribute("src"); } catch (e) { /* ignore */ }
-            if (state.inlineFpsTimer) { clearInterval(state.inlineFpsTimer); state.inlineFpsTimer = null; }
-            if (dom.streamLiveFps) dom.streamLiveFps.style.display = "none";
-            startStreamWatch();
+            rec.popup = w;
+            // Promoting to the popup: the inline <img> must stop reading it, or both
+            // consumers would split one stdout's multipart frames. Drop it only after
+            // the popup is up, so the pipeline is never left without a consumer.
+            if (state.inlineStreamId === streamId) {
+                detachInline();
+                if (rec.inlineFpsTimer) { clearInterval(rec.inlineFpsTimer); rec.inlineFpsTimer = null; }
+            }
+            startStreamWatch(rec);
+            syncStreamPanel();
         }
         return w;
     }
 
-    function startStreamWatch() {
-        if (state.streamWatchTimer) clearInterval(state.streamWatchTimer);
-        state.streamWatchTimer = setInterval(() => {
-            const w = state.previewWindow;
-            if (w && w.closed) handleStreamStopped();
+    function startStreamWatch(rec) {
+        if (rec.watchTimer) clearInterval(rec.watchTimer);
+        rec.watchTimer = setInterval(() => {
+            if (rec.popup && rec.popup.closed) {
+                rec.popup = null;
+                // The popup held the only consumer, so the server already reaped the
+                // pipeline when the connection dropped; this is local bookkeeping.
+                handleStreamStopped(rec.streamId);
+            }
         }, 1000);
     }
 
-    function stopStreamWatch() {
-        if (state.streamWatchTimer) { clearInterval(state.streamWatchTimer); state.streamWatchTimer = null; }
+    // Local-side teardown of a stream that is no longer running (stopped, died, or
+    // its viewer went away). Safe to call twice; only the first call does anything.
+    function dropStreamLocally(streamId) {
+        const rec = state.streams.get(streamId);
+        if (!rec) return false;
+        clearStreamTimers(rec);
+        closeStreamPopup(rec);
+        forgetStream(streamId);
+        syncStreamPanel();
+        return true;
     }
 
-    function handleStreamStopped() {
-        state.streamId = null;
-        stopStreamWatch();
-        if (state.previewWindow) { try { state.previewWindow.close(); } catch (e) { /* ignore */ } state.previewWindow = null; }
-        try { dom.mjpegView.removeAttribute("src"); } catch (e) { /* ignore */ }
-        setPreviewLauncher(false);
-        if (state.inlineFpsTimer) { clearInterval(state.inlineFpsTimer); state.inlineFpsTimer = null; }
-        if (dom.streamLiveFps) dom.streamLiveFps.style.display = "none";
-        dom.streamPreviewWrap.style.display = "none";
-        if (dom.btnOpenPreview) dom.btnOpenPreview.style.display = "none";
-        dom.btnStopStream.style.display = "none";
-        dom.btnStartStream.style.display = "";
-        dom.btnStartStream.disabled = false;
+    function handleStreamStopped(streamId) {
+        if (!dropStreamLocally(streamId)) return;
+        refreshStreamList(true);
+    }
+
+    // ---- Running-previews list ------------------------------------------
+    // The server is the source of truth: a stream can end without this tab noticing
+    // (popup closed, pipeline crashed), so the list both informs the user and
+    // reconciles state.streams. It also adopts streams that exist but are unknown
+    // here, which is what makes the concurrency cap honest after a page reload.
+    // What the pipeline is actually delivering to a viewer.  ``measured_fps`` is
+    // fed by the byte counter in the read loop, so it stays 0 while nobody is
+    // watching - say so instead of implying the camera stalled.
+    function streamFpsText(s, rec) {
+        const v = s.measured_fps || 0;
+        if (v > 0) return Math.round(v) + " fps \u2192";
+        const viewed = !!(rec && ((rec.popup && !rec.popup.closed)
+            || state.inlineStreamId === rec.streamId));
+        return viewed ? "0 fps \u2192" : t("stream.no_viewer");
+    }
+
+    function streamRowHtml(s, rec) {
+        const sid = escapeHtml(s.stream_id);
+        const label = escapeHtml(s.label || s.video_node || s.stream_id);
+        const res = (s.width && s.height) ? (s.width + "\u00d7" + s.height) : "";
+        const parts = [];
+        if (res) parts.push(res);
+        if (s.fps) parts.push(s.fps + " fps");
+        // The encoder name is what reveals a silent fall back to CPU jpegenc.
+        if (s.encoder) parts.push(s.encoder);
+        parts.push(streamFpsText(s, rec));
+        return (
+            '<div class="stream-list-row" data-stream-id="' + sid + '">'
+            + '<span class="stream-list-label" title="' + escapeHtml(s.video_node || "") + '">' + label + '</span>'
+            + '<span class="stream-list-meta">' + escapeHtml(parts.join(" \u00b7 ")) + '</span>'
+            + '<button class="btn btn-sm btn-outline" data-act="reopen" data-i18n-title="stream.reopen">\u25a1</button>'
+            + '<button class="btn btn-sm btn-outline" data-act="stop" data-i18n-title="stream.stop">\u2715</button>'
+            + '</div>'
+        );
+    }
+
+    async function refreshStreamList(force) {
+        if (!dom.streamListWrap) return;
+        if (!force && state.streams.size === 0 && dom.streamListWrap.style.display === "none") return;
+        let data = null;
+        try {
+            data = await apiGet("/api/stream/status");
+        } catch (e) {
+            return;  // transient; keep the current rows
+        }
+        const streams = (data && data.streams) || [];
+        if (typeof data.max_streams === "number") state.maxStreams = data.max_streams;
+
+        const alive = {};
+        streams.forEach((s) => {
+            alive[s.stream_id] = true;
+            // Adopt a stream this tab does not know: after a reload the popups and
+            // pipelines survive while state.streams is empty, and without this the
+            // camera would offer "Start" for a node that is already capturing.
+            if (!state.streams.has(s.stream_id)) {
+                state.streams.set(s.stream_id, {
+                    streamId: s.stream_id,
+                    videoNode: s.video_node,
+                    label: s.label || s.video_node || s.stream_id,
+                    series: s.series || "gx",
+                    playbackUrl: "/api/stream/" + s.stream_id + "/mjpeg",
+                    encoder: s.encoder || "",
+                    params: null,
+                    popup: null,
+                    watchTimer: null,
+                    inlineFpsTimer: null,
+                    inlineZeroTicks: 0,
+                    startedAt: Date.now(),
+                });
+            }
+        });
+        // Drop local records the server no longer has (their pipeline is gone), except
+        // very recent ones: a poll issued just before /start committed its pipeline
+        // cannot know about it yet, and must not then delete it. dropStreamLocally
+        // (not handleStreamStopped) keeps this single-pass: re-polling per row from
+        // inside the poll would cascade.
+        Array.from(state.streams.keys()).forEach((id) => {
+            if (alive[id]) return;
+            const rec = state.streams.get(id);
+            if (rec && Date.now() - (rec.startedAt || 0) < 6000) return;
+            dropStreamLocally(id);
+        });
+
+        if (!streams.length) {
+            dom.streamList.innerHTML = "";
+            dom.streamListWrap.style.display = "none";
+            if (dom.streamListCount) dom.streamListCount.textContent = "0 / " + state.maxStreams;
+            return;
+        }
+        dom.streamList.innerHTML = streams
+            .map((s) => streamRowHtml(s, state.streams.get(s.stream_id)))
+            .join("");
+        if (dom.streamListCount) {
+            dom.streamListCount.textContent = streams.length + " / " + state.maxStreams;
+        }
+        applyI18nAttributes(dom.streamList);
+        dom.streamListWrap.style.display = "";
+    }
+
+    function startStreamListPoll() {
+        if (state.streamListTimer) return;
+        // 2s rather than 1s: every row costs one same-origin HTTP request, and each
+        // live preview already holds one of the browser's six connections.
+        state.streamListTimer = setInterval(() => refreshStreamList(false), 2000);
     }
 
     // ========== Init ==========
@@ -1721,6 +2080,10 @@
         await loadGroups();
         showView("welcome");
         updateStreamGate();
+        // Adopt streams that outlived a page reload (their popups survive it), so the
+        // concurrency budget and the Stop buttons reflect the server, not this tab.
+        await refreshStreamList(true);
+        startStreamListPoll();
     }
 
     // Start

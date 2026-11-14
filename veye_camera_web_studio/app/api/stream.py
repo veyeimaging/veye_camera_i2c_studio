@@ -7,9 +7,13 @@ that the browser's ``<img>`` renders directly:
   POST /api/stream/configure      Stage-0 camera configuration (dry_run capable)
   POST /api/stream/start          configure + launch gst pipeline -> stream_id
   POST /api/stream/{id}/stop      terminate pipeline, release device
+  POST /api/stream/stop-all       terminate every running pipeline
   GET  /api/stream/status         all active streams (+ device owners)
   GET  /api/stream/{id}/status    one active stream
   GET  /api/stream/{id}/mjpeg     multipart/x-mixed-replace live view
+
+Several cameras may be streamed at the same time; every route is addressed by
+``stream_id``, so the client keeps one entry per running pipeline.
 """
 from __future__ import annotations
 
@@ -132,9 +136,19 @@ def start(req: StreamRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"start error: {e}")
 
     if not result.get("ok"):
+        # 409 = this node is already streaming, 429 = too many streams at once.
+        # The UI shows a different hint for each (stop *that* camera vs. stop any).
+        if result.get("too_many"):
+            raise HTTPException(status_code=429, detail=result.get("error") or "too many streams")
         status = 409 if result.get("busy") else 400
         raise HTTPException(status_code=status, detail=result.get("error") or "start failed")
     return result
+
+
+@router.post("/stop-all")
+def stop_all() -> Dict[str, Any]:
+    """Stop every running stream and release all device nodes."""
+    return stream_service.stop_all()
 
 
 @router.post("/{stream_id}/stop")

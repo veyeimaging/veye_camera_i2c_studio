@@ -1048,3 +1048,79 @@ body {
 .stream-status.ok { color: var(--accent); }
 .stream-status.error { color: var(--danger, #e05252); }
 .stream-status.loading { color: var(--text-muted); }
+
+/* The inline thumbnail may belong to a camera other than the selected one, so it
+   is always captioned with the stream's own label. */
+.stream-inline-caption {
+    display: block;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    word-break: break-all;
+}
+
+/* Running previews across all cameras */
+.stream-list {
+    margin-top: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+.stream-list-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+.stream-list-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+.stream-list-count {
+    flex: 1;
+    font-size: 11px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    color: var(--text-muted);
+}
+.stream-list-head .btn {
+    padding: 2px 8px;
+    font-size: 11px;
+}
+.stream-list-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+.stream-list-row:last-child { border-bottom: none; }
+.stream-list-label {
+    font-size: 12px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 42%;
+}
+.stream-list-meta {
+    flex: 1;
+    font-size: 11px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    color: var(--text-muted);
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.stream-list-row .btn {
+    padding: 1px 7px;
+    font-size: 11px;
+    line-height: 1.5;
+    flex: none;
+}

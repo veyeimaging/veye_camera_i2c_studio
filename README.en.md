@@ -4,7 +4,7 @@
 
 A web-based tool for managing and debugging VEYE cameras. Perform register-level read/write operations directly from your browser.
 
-> **v0.4.2 Release** — Supports Jetson, Raspberry Pi 5, and Rockchip platforms. Supports both GX/GXC series and MV/RAW series cameras. Live preview in the browser (MJPEG over HTTP), using the hardware JPEG encoder automatically on Rockchip and Jetson (`mppjpegenc` / `nvjpegenc`), with an automatic software-encoder fallback when a hardware launch fails. Network-resilient installer plus a smart installation strategy with maximum compatibility.
+> **v0.5.0 Release** — Supports Jetson, Raspberry Pi 5, and Rockchip platforms. Supports both GX/GXC series and MV/RAW series cameras. Live preview in the browser (MJPEG over HTTP) now handles **multiple cameras at once** — one independent preview window per camera, up to 4 concurrent — and switching the selected camera no longer interrupts an existing preview. Uses the hardware JPEG encoder automatically on Rockchip and Jetson (`mppjpegenc` / `nvjpegenc`), with an automatic software-encoder fallback when a hardware launch fails. Network-resilient installer plus a smart installation strategy with maximum compatibility.
 
 ## Features
 
@@ -17,6 +17,7 @@ A web-based tool for managing and debugging VEYE cameras. Perform register-level
 - Dark / light theme toggle
 - Automatic feature filtering based on camera series (e.g., trigger modes)
 - Live preview (MJPEG over HTTP): GX/GXC (UYVY) and MV/RAW (GREY) viewable directly in the browser, with resolution / framerate / ROI / quality controls prefilled from the camera's current configuration
+- Concurrent multi-camera preview: one independent window per camera (up to 4), and selecting another camera no longer interrupts a running preview; the sidebar **Running Previews** list shows one row per pipeline with its camera label, resolution/framerate, the encoder actually in use and the measured fps, with per-row reopen/stop plus Stop All
 - Per-platform automatic JPEG encoder selection: hardware `mppjpegenc` on Rockchip (dmabuf straight into the encoder, no color convert), GPU `nvjpegenc` on Jetson (kept behind the `nvvidconv` I420 stage), the portable software path on Raspberry Pi; `encoder` can force the CPU encoder for comparison
 - Automatic hardware->software encoder fallback: if the auto-picked hardware encoder dies during startup the pipeline is relaunched once on `jpegenc`, with the fallback source reported in the result
 - Visible preview failures: a failed start returns the real GStreamer reason at once, an unexpected process exit flips the stream to `error` with that reason, and the frontend stops polling a dead stream
@@ -36,7 +37,7 @@ veye_camera_i2c_studio/
 │   ├── i2c_4read / i2c_4write     # Pre-compiled binary tools
 │   └── sources/                   # C source code
 ├── veye_camera_web_studio/         # Web server main application
-│   ├── main.py                    # FastAPI entry point (v0.4.2)
+│   ├── main.py                    # FastAPI entry point (v0.5.0)
 │   ├── app/
 │   │   ├── adapters/              # Platform adapters
 │   │   │   └── jetson/            # Jetson platform adapter
@@ -186,6 +187,8 @@ Open `http://localhost:8080` in your browser.
 - Jetson's `nvjpegenc` only accepts I420/GRAY8 input (never raw UYVY), so its hardware path keeps the `nvvidconv` convert stage - unlike Rockchip's dmabuf-fed `mppjpegenc`; if that element fails to launch on a given board, the pipeline is relaunched once on the software `jpegenc`
 - Multiple clients accessing the I2C bus concurrently may cause conflicts
 - Live preview allows one consumer per capture node at a time (the popup page takes precedence); the pipeline is torn down as soon as the consumer disconnects
+- Concurrent previews are capped at 4 (`_MAX_STREAMS`) because a browser allows only six HTTP/1.1 connections per origin; when pop-ups are blocked the view falls back to the single inline thumbnail, and in that mode only one preview can be watched at a time
+- Concurrent hardware encoding is measured on Jetson only: two `nvjpegenc` instances side by side delivered 30.0 fps at 1080p@30 and 40.0 fps at 1080p@60; a second `mppjpegenc` instance on Rockchip is still unverified on hardware
 - 1080p software encoding tops out near 30 fps (`videoconvert` and `jpegenc` are both single-threaded); the Rockchip hardware path reaches ~54 fps at quality 60 but only ~31 fps at quality 85, because at higher quality the bottleneck moves to "byte read-out → HTTP delivery" (~4 MB/s)
 - Rockchip `rkcif` lists only 1-30 fps in `VIDIOC_ENUM_FRAMEINTERVALS` (an `S_FMT` restriction, not a transport limit); the capture caps no longer carry `framerate` - frame rate comes from the I2C 0x0850 register and the media-ctl pad - so entering the camera's nominal maximum (e.g. 60) in the preview form is correct
 - In dark scenes AE extends exposure (slow shutter), so the sensor delivers fewer frames than requested; that drop is not a software issue. Compare `v4l2-ctl -d /dev/videoXX --stream-mmap` against the UI's `measured_fps` to tell the camera side from the encode side

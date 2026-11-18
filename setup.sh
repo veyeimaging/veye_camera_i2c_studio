@@ -112,6 +112,49 @@ check_dependencies_installed() {
 }
 
 # ─────────────────────────────────────────────
+# Ensure `python3 -m venv` can actually create environments with pip
+# ─────────────────────────────────────────────
+# On Debian/Ubuntu the venv module only produces a usable environment when the
+# versioned python3-<ver>-venv package (which provides ensurepip) is installed.
+# `python3 -m venv --help` succeeds even when that package is missing, so probe
+# ensurepip directly. If it's absent, install it via sudo — sudo prompts for the
+# password on the terminal. Returns non-zero if we could not install it.
+ensure_venv_package() {
+    if python3 -c "import ensurepip" &>/dev/null; then
+        return 0
+    fi
+
+    warn "python3-venv (ensurepip) is missing; attempting to install it"
+
+    if ! command -v apt-get &>/dev/null; then
+        warn "apt-get not found; install manually: sudo apt install python${PY_VERSION}-venv"
+        return 1
+    fi
+
+    local SUDO="sudo"
+    command -v sudo &>/dev/null || SUDO=""
+    if [ -z "$SUDO" ] && [ "$(id -u)" != "0" ]; then
+        warn "No sudo available and not root; install manually: sudo apt install python${PY_VERSION}-venv"
+        return 1
+    fi
+
+    echo "  Installing python3-venv (you may be prompted for your sudo password)..."
+    # Keep output unredirected so the [sudo] password prompt and apt progress are visible.
+    $SUDO apt-get update -y \
+        || warn "apt-get update failed; continuing anyway"
+    $SUDO apt-get install -y "python${PY_VERSION}-venv" python3-venv python3-pip \
+        || warn "apt-get install failed for python${PY_VERSION}-venv"
+
+    if python3 -c "import ensurepip" &>/dev/null; then
+        info "python3-venv installed"
+        return 0
+    fi
+
+    warn "Still missing python${PY_VERSION}-venv. Try manually: sudo apt install python${PY_VERSION}-venv"
+    return 1
+}
+
+# ─────────────────────────────────────────────
 # 1. Check Python 3
 # ─────────────────────────────────────────────
 if ! command -v python3 &>/dev/null; then
@@ -157,6 +200,10 @@ setup_pip_mirror
 USE_VENV=false
 PYTHON_CMD="python3"
 PIP_CMD="pip3"
+
+# Ensure the venv package exists so `python3 -m venv` can create an environment
+# with pip (auto-installs python3-<ver>-venv via sudo if it is missing).
+ensure_venv_package || true
 
 # Try venv first
 if python3 -m venv --help &>/dev/null 2>&1; then
